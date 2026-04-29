@@ -1,0 +1,224 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2024-01-15",
+    "description": "Routine templates for daily health recommendations"
+  },
+  "diet_plans": {
+    "balanced": {
+      "name": "Balanced Diet Plan",
+      "description": "Well-rounded meals for optimal health",
+      "meals": [
+        "Oatmeal with berries and almonds",
+        "Greek yogurt with honey and walnuts",
+        "Grilled chicken salad with olive oil",
+        "Apple with peanut butter",
+        "Baked salmon with quinoa and roasted vegetables"
+      ],
+      "guidelines": [
+        "Include protein in every meal",
+        "Eat at least 5 servings of fruits/vegetables daily",
+        "Choose whole grains over refined",
+        "Limit processed foods and added sugars",
+        "Stay hydrated with water throughout the day"
+      ]
+    },
+    "diabetes": {
+      "name": "Diabetes-Friendly Diet",
+      "description": "Low glycemic index meals for blood sugar management",
+      "meals": [
+        "Steel-cut oats with cinnamon and berries",
+        "Handful of almonds and walnuts",
+        "Turkey and avocado wrap with whole grain tortilla",
+        "Celery sticks with hummus",
+        "Grilled fish with steamed broccoli and quinoa"
+      ],
+      "guidelines": [
+        "Monitor carbohydrate intake",
+        "Choose low glycemic index foods",
+        "Eat at regular intervals to maintain blood sugar",
+        "Include fiber-rich foods",
+        "Limit sugary drinks and desserts"
+      ]
+    },
+    "low_sodium": {
+      "name": "Low Sodium Diet",
+      "description": "Heart-healthy meals for blood pressure management",
+      "meals": [
+        "Fresh fruit with unsalted oatmeal",
+        "Unsalted nuts and fresh vegetables",
+        "Grilled chicken breast with herbs and brown rice",
+        "Fresh fruit salad",
+        "Baked fish with lemon and steamed vegetables"
+      ],
+      "guidelines": [
+        "Avoid adding salt during cooking",
+        "Read food labels for sodium content",
+        "Use herbs and spices for flavor",
+        "Limit processed and packaged foods",
+        "Choose fresh over canned vegetables"
+      ]
+    },
+    "weight_loss": {
+      "name": "Weight Loss Diet Plan",
+      "description": "Calorie-controlled meals for healthy weight loss",
+      "meals": [
+        "Egg white omelet with vegetables",
+        "Protein shake with berries",
+        "Large salad with lean protein",
+        "Vegetable sticks with hummus",
+        "Lean protein with non-starchy vegetables"
+      ],
+      "guidelines": [
+        "Control portion sizes",
+        "Eat slowly and mindfully",
+        "Include protein with each meal",
+        "Limit liquid calories",
+        "Plan meals ahead of time"
+      ]
+    },
+    "senior": {
+      "name": "Senior Wellness Diet",
+      "description": "Nutrient-dense meals for aging adults",
+      "meals": [
+        "Scrambled eggs with soft whole grain toast",
+        "Smoothie with protein powder and berries",
+        "Vegetable soup with crackers",
+        "Cottage cheese with soft fruits",
+        "Mashed potatoes with soft cooked fish"
+      ],
+      "guidelines": [
+        "Focus on nutrient density",
+        "Ensure adequate protein intake",
+        "Stay hydrated even if not thirsty",
+        "Include calcium-rich foods",
+        "Consider vitamin supplements if needed"
+      ]
+    }
+  },
+  "exercise_plans": {
+    "adult": [
+      {
+        "name": "Brisk Walking",
+        "duration": "30 minutes",
+        "frequency": "daily",
+        "intensity": "moderate",
+        "benefits": "Improves cardiovascular health, strengthens bones",
+        "precautions": "Wear comfortable shoes, stay hydrated"
+      },
+      {
+        "name": "Swimming",
+        "duration": "20-30 minutes",
+        "frequency": "3 times/week",
+        "intensity": "moderate",
+        "benefits": "Full body workout, low impact on joints",
+        "precautions": "Use sunscreen if outdoors, stay hydrated"
+      },
+      {
+        "name": "Yoga",
+        "duration": "15-20 minutes",
+        "frequency": "daily",
+        "intensity": "light to moderate",
+        "benefits": "Improves flexibility, reduces stress",
+        "precautions": "Listen to your body, don't push through pain"
+      },
+      {
+        "name": "Strength Training",
+        "duration": "20 minutes",
+        "frequency": "2-3 times/week",
+        "intensity": "moderate",
+        "benefits": "Builds muscle, increases metabolism",
+        "precautions": "Use proper form, start with light weights"
+      }
+    ],
+    "gentle": [
+      {
+        "name": "Chair Yoga",
+        "duration": "15 minutes",
+        "frequency": "daily",
+        "intensity": "light",
+        "benefits": "Improves flexibility, reduces stiffness",
+        "precautions": "Move slowly, avoid jerky movements"
+      },
+      {
+        "name": "Walking",
+        "duration": "20 minutes",
+        "frequency": "daily",
+        "intensity": "light",
+        "benefits": "Gentle cardiovascular activity",
+        "precautions": "Use support if needed, wear stable shoes"
+      },
+      {
+        "name": "Stretching",
+        "duration": "10 minutes",
+        "frequency": "daily",
+        "intensity": "light",
+        "benefits": "Maintains flexibility, reduces muscle tension",
+        "precautions": "Don't bounce, hold stretches gently"
+      },
+      {
+        "name": "Tai Chi",
+        "duration": "15 minutes",
+        "frequency": "daily",
+        "intensity": "light",
+        "benefits": "Improves balance, reduces stress",
+        "precautions": "Move at your own pace"
+      }
+    ],
+    "senior": [
+      {
+        "name": "Water Aerobics",
+        "duration": "30 minutes",
+        "frequency": "2-3 times/week",
+        "intensity": "light to moderate",
+        "benefits": "Low impact, gentle on joints",
+        "precautions": "Use flotation devices if needed"
+      },
+      {
+        "name": "Balance Exercises",
+        "duration": "10 minutes",
+        "frequency": "daily",
+        "intensity": "light",
+        "benefits": "Prevents falls, improves stability",
+        "precautions": "Hold onto support when needed"
+      }
+    ]
+  },
+  "wellness_tips": {
+    "general": [
+      "Stay hydrated - drink at least 8 glasses of water daily",
+      "Practice deep breathing for 5 minutes to reduce stress",
+      "Take breaks from screens every hour",
+      "Get at least 7-8 hours of quality sleep",
+      "Maintain social connections for mental health",
+      "Practice gratitude daily",
+      "Limit caffeine after 2 PM",
+      "Wash hands frequently to prevent infections"
+    ],
+    "adult": [
+      "Schedule annual physical exams",
+      "Monitor blood pressure regularly",
+      "Stay up to date with vaccinations",
+      "Perform self-examinations monthly"
+    ],
+    "senior": [
+      "Check medication interactions regularly",
+      "Install grab bars in bathroom for safety",
+      "Keep emergency numbers handy",
+      "Use pill organizer for medications",
+      "Check vision and hearing annually"
+    ],
+    "diabetes": [
+      "Monitor blood sugar regularly",
+      "Check feet daily for cuts or sores",
+      "Wear medical ID bracelet",
+      "Keep quick sugar sources handy"
+    ],
+    "heart_disease": [
+      "Monitor blood pressure daily",
+      "Take medications as prescribed",
+      "Know signs of heart attack and stroke",
+      "Maintain healthy weight"
+    ]
+  }
+}

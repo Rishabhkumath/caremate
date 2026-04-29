@@ -1,0 +1,117 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2024-01-15",
+    "description": "Symptom database for common conditions"
+  },
+  "conditions": {
+    "Common Cold": {
+      "symptoms": ["runny nose", "sneezing", "cough", "sore throat", "mild fever", "congestion", "watery eyes"],
+      "description": "A viral infection of the upper respiratory tract",
+      "typical_duration": "7-10 days",
+      "should_see_doctor": false,
+      "home_remedies": ["rest", "fluids", "honey for cough", "saline nasal spray"],
+      "severity": "mild"
+    },
+    "Influenza": {
+      "symptoms": ["fever", "chills", "body aches", "fatigue", "cough", "headache", "sore throat", "runny nose"],
+      "description": "A contagious viral infection affecting the respiratory system",
+      "typical_duration": "5-7 days",
+      "should_see_doctor": true,
+      "home_remedies": ["rest", "fluids", "fever reducers", "warm compresses for aches"],
+      "severity": "moderate to severe"
+    },
+    "Seasonal Allergies": {
+      "symptoms": ["sneezing", "itchy eyes", "runny nose", "watery eyes", "nasal congestion", "cough"],
+      "description": "Immune response to environmental triggers like pollen or dust",
+      "typical_duration": "Varies with exposure",
+      "should_see_doctor": false,
+      "home_remedies": ["antihistamines", "nasal rinses", "avoid triggers", "air purifiers"],
+      "severity": "mild to moderate"
+    },
+    "Migraine": {
+      "symptoms": ["severe headache", "nausea", "sensitivity to light", "sensitivity to sound", "visual aura", "vomiting"],
+      "description": "Intense throbbing headache often with other symptoms",
+      "typical_duration": "4-72 hours",
+      "should_see_doctor": true,
+      "home_remedies": ["dark quiet room", "cold compress", "rest", "hydration"],
+      "severity": "moderate to severe"
+    },
+    "Tension Headache": {
+      "symptoms": ["mild headache", "pressure around forehead", "scalp tenderness", "neck tension"],
+      "description": "Common headache caused by muscle tension",
+      "typical_duration": "30 minutes to several hours",
+      "should_see_doctor": false,
+      "home_remedies": ["rest", "stress reduction", "gentle neck stretches", "over-the-counter pain relief"],
+      "severity": "mild"
+    },
+    "Gastroenteritis": {
+      "symptoms": ["nausea", "vomiting", "diarrhea", "abdominal cramps", "fever", "dehydration"],
+      "description": "Inflammation of the stomach and intestines (stomach flu)",
+      "typical_duration": "1-3 days",
+      "should_see_doctor": true,
+      "home_remedies": ["clear fluids", "electrolyte drinks", "bland diet", "rest"],
+      "severity": "mild to moderate"
+    },
+    "Urinary Tract Infection": {
+      "symptoms": ["burning urination", "frequent urination", "cloudy urine", "pelvic pain", "blood in urine"],
+      "description": "Bacterial infection in the urinary system",
+      "typical_duration": "3-7 days with treatment",
+      "should_see_doctor": true,
+      "home_remedies": ["drink water", "avoid irritants", "cranberry juice", "heating pad"],
+      "severity": "moderate"
+    },
+    "Sinusitis": {
+      "symptoms": ["facial pain", "nasal congestion", "thick nasal discharge", "headache", "fever", "cough"],
+      "description": "Inflammation of the sinus cavities",
+      "typical_duration": "7-14 days",
+      "should_see_doctor": true,
+      "home_remedies": ["steam inhalation", "nasal rinses", "warm compresses", "rest"],
+      "severity": "moderate"
+    },
+    "Bronchitis": {
+      "symptoms": ["persistent cough", "mucus production", "fatigue", "shortness of breath", "chest discomfort"],
+      "description": "Inflammation of the bronchial tubes",
+      "typical_duration": "10-14 days",
+      "should_see_doctor": true,
+      "home_remedies": ["rest", "fluids", "humidifier", "honey"],
+      "severity": "moderate"
+    },
+    "Strep Throat": {
+      "symptoms": ["severe sore throat", "painful swallowing", "fever", "swollen lymph nodes", "red throat with white patches"],
+      "description": "Bacterial infection of the throat and tonsils",
+      "typical_duration": "3-7 days with antibiotics",
+      "should_see_doctor": true,
+      "home_remedies": ["warm salt water gargle", "throat lozenges", "soft foods", "rest"],
+      "severity": "moderate"
+    },
+    "Conjunctivitis": {
+      "symptoms": ["red eyes", "itchy eyes", "watery discharge", "gritty feeling", "crusting on eyelids"],
+      "description": "Inflammation of the conjunctiva (pink eye)",
+      "typical_duration": "7-14 days",
+      "should_see_doctor": true,
+      "home_remedies": ["warm compresses", "artificial tears", "clean eyelids"],
+      "severity": "mild to moderate"
+    },
+    "Anxiety": {
+      "symptoms": ["worry", "racing thoughts", "rapid heartbeat", "sweating", "trembling", "fatigue", "difficulty concentrating"],
+      "description": "Mental health condition with excessive worry and physical symptoms",
+      "typical_duration": "Varies with treatment",
+      "should_see_doctor": true,
+      "home_remedies": ["deep breathing", "exercise", "meditation", "limit caffeine"],
+      "severity": "variable"
+    }
+  },
+  "symptom_categories": {
+    "fever": ["Common Cold", "Influenza", "Sinusitis", "Strep Throat", "Gastroenteritis"],
+    "cough": ["Common Cold", "Influenza", "Bronchitis", "Allergies"],
+    "headache": ["Migraine", "Tension Headache", "Sinusitis", "Influenza"],
+    "fatigue": ["Influenza", "Anxiety", "Bronchitis", "Common Cold"],
+    "nausea": ["Gastroenteritis", "Migraine", "Anxiety"],
+    "sore throat": ["Strep Throat", "Common Cold", "Influenza"],
+    "runny nose": ["Common Cold", "Allergies", "Influenza"],
+    "body aches": ["Influenza", "Common Cold"],
+    "chest pain": ["Bronchitis", "Anxiety"],
+    "shortness of breath": ["Bronchitis", "Anxiety"]
+  }
+}
