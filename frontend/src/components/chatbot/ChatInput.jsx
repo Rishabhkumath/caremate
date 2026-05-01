@@ -18,7 +18,7 @@ export default function ChatInput({ onSend, disabled }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-end gap-2 p-3 border-t border-white/5">
+    <form onSubmit={handleSubmit} className="flex items-end gap-2 border-t border-slate-100 p-3">
       <textarea
         ref={ref}
         value={value}

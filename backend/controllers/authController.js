@@ -7,6 +7,33 @@ const { validationResult } = require('express-validator')
 const { successResponse, errorResponse } = require('../utils/apiResponse')
 const crypto       = require('crypto')
 const emailService = require('../services/emailService')
+const axios        = require('axios')
+
+const getAuthUserPayload = (user) => ({
+  id:             user._id,
+  _id:            user._id,
+  name:           user.name,
+  email:          user.email,
+  role:           user.role,
+  phoneNumber:    user.phoneNumber,
+  profilePicture: user.profilePicture,
+  authProvider:   user.authProvider,
+  emailVerified:  user.emailVerified,
+})
+
+const setAuthCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge:   30 * 24 * 60 * 60 * 1000,
+  })
+}
+
+const getGoogleClientId = () => {
+  const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim()
+  return clientId && !clientId.startsWith('your-google-oauth-client-id') ? clientId : ''
+}
 
 // ── register ──────────────────────────────────────────────
 const register = async (req, res, next) => {
@@ -76,14 +103,7 @@ const register = async (req, res, next) => {
 
     return successResponse(res, {
       token,
-      user: {
-        id:    user._id,
-        _id:   user._id,
-        name:  user.name,
-        email: user.email,
-        role:  user.role,
-        phoneNumber: user.phoneNumber,
-      }
+      user: getAuthUserPayload(user)
     }, 'Registration successful', 201)
 
   } catch (error) { next(error) }
@@ -110,26 +130,99 @@ const login = async (req, res, next) => {
 
     const token = generateToken(user._id)
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      maxAge:   30 * 24 * 60 * 60 * 1000,
-    })
+    setAuthCookie(res, token)
 
     return successResponse(res, {
       token,
-      user: {
-        id:             user._id,
-        _id:            user._id,
-        name:           user.name,
-        email:          user.email,
-        role:           user.role,
-        phoneNumber:    user.phoneNumber,
-        profilePicture: user.profilePicture,
-      }
+      user: getAuthUserPayload(user)
     }, 'Login successful')
 
   } catch (error) { next(error) }
+}
+
+// Google OAuth login
+const googleLogin = async (req, res, next) => {
+  try {
+    const { credential } = req.body
+    const googleClientId = getGoogleClientId()
+
+    if (!googleClientId) {
+      return errorResponse(res, 'Google login is not configured on this server', 500)
+    }
+
+    if (!credential) {
+      return errorResponse(res, 'Google credential is required', 400)
+    }
+
+    const { data: googleUser } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
+      params: { id_token: credential },
+      timeout: 5000,
+    })
+
+    const isVerifiedEmail = googleUser.email_verified === true || googleUser.email_verified === 'true'
+
+    if (googleUser.aud !== googleClientId) {
+      return errorResponse(res, 'Invalid Google credential audience', 401)
+    }
+
+    if (!googleUser.sub || !googleUser.email || !isVerifiedEmail) {
+      return errorResponse(res, 'Google account email must be verified', 401)
+    }
+
+    const email = googleUser.email.toLowerCase().trim()
+    let user = await User.findOne({
+      $or: [{ googleId: googleUser.sub }, { email }],
+    })
+
+    if (user && !user.isActive) {
+      return errorResponse(res, 'Account deactivated. Contact support.', 401)
+    }
+
+    if (!user) {
+      user = await User.create({
+        name: googleUser.name || email.split('@')[0],
+        email,
+        passwordHash: crypto.randomBytes(32).toString('hex'),
+        role: 'patient',
+        profilePicture: googleUser.picture || '',
+        authProvider: 'google',
+        googleId: googleUser.sub,
+        emailVerified: true,
+      })
+    } else {
+      user.googleId = user.googleId || googleUser.sub
+      user.authProvider = user.authProvider === 'local' ? 'local' : 'google'
+      user.emailVerified = true
+      if (!user.profilePicture && googleUser.picture) user.profilePicture = googleUser.picture
+      if (!user.name && googleUser.name) user.name = googleUser.name
+    }
+
+    user.lastLogin = Date.now()
+    await user.save()
+
+    const token = generateToken(user._id)
+    setAuthCookie(res, token)
+
+    return successResponse(res, {
+      token,
+      user: getAuthUserPayload(user)
+    }, 'Google login successful')
+
+  } catch (error) {
+    if (error.response?.status) {
+      return errorResponse(res, 'Invalid Google credential', 401)
+    }
+    next(error)
+  }
+}
+
+const getGoogleConfig = (req, res) => {
+  const clientId = getGoogleClientId()
+
+  return successResponse(res, {
+    enabled: Boolean(clientId),
+    clientId,
+  })
 }
 
 // ── getMe ─────────────────────────────────────────────────
@@ -137,13 +230,7 @@ const getMe = async (req, res, next) => {
   try {
     if (!req.user) return errorResponse(res, 'Not authenticated', 401)
     return successResponse(res, {
-      id:             req.user._id,
-      _id:            req.user._id,
-      name:           req.user.name,
-      email:          req.user.email,
-      role:           req.user.role,
-      phoneNumber:    req.user.phoneNumber,
-      profilePicture: req.user.profilePicture,
+      ...getAuthUserPayload(req.user),
     })
   } catch (error) { next(error) }
 }
@@ -219,4 +306,4 @@ const logout = (req, res) => {
   return successResponse(res, null, 'Logged out successfully')
 }
 
-module.exports = { register, login, getMe, forgotPassword, resetPassword, logout }
+module.exports = { register, login, googleLogin, getGoogleConfig, getMe, forgotPassword, resetPassword, logout }

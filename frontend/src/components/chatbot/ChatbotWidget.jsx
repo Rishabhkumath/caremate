@@ -20,13 +20,13 @@ export default function ChatbotWidget() {
       {open && (
         <div className="mb-3 w-80 sm:w-96 h-[500px] glass-card flex flex-col shadow-card-hover animate-slide-up">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/5">
+          <div className="flex items-center justify-between border-b border-slate-100 p-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center">
                 <span className="text-white text-xs font-bold">AI</span>
               </div>
               <div>
-                <p className="text-white text-sm font-medium">CareMate AI</p>
+                <p className="text-slate-900 text-sm font-medium">CareMate AI</p>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
                   <span className="text-teal-400 text-xs">Online</span>
@@ -34,10 +34,10 @@ export default function ChatbotWidget() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button onClick={clearChat} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title="Clear chat">
+              <button onClick={clearChat} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors" title="Clear chat">
                 <RefreshCw size={14} />
               </button>
-              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
                 <X size={16} />
               </button>
             </div>
@@ -55,7 +55,7 @@ export default function ChatbotWidget() {
             <div className="px-4 pb-2 flex flex-wrap gap-1.5">
               {['Check my symptoms', 'Medication help', 'BP reading advice'].map(s => (
                 <button key={s} onClick={() => sendMessage(s)}
-                  className="px-3 py-1.5 bg-white/5 hover:bg-teal-500/10 border border-white/10 hover:border-teal-500/30 rounded-full text-xs text-slate-400 hover:text-teal-400 transition-all">
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-200 rounded-full text-xs text-slate-600 hover:text-teal-700 transition-all">
                   {s}
                 </button>
               ))}

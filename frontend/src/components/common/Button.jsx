@@ -4,7 +4,7 @@ const VARIANTS = {
   primary:   'btn-primary',
   secondary: 'btn-secondary',
   danger:    'btn-danger',
-  ghost:     'text-slate-400 hover:text-white hover:bg-white/8 rounded-xl transition-all duration-200',
+  ghost:     'text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200',
   outline:   'border border-teal-500/50 text-teal-400 hover:bg-teal-500/10 rounded-xl transition-all duration-200 inline-flex items-center justify-content gap-2 font-medium',
 }
 

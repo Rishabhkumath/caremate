@@ -89,6 +89,27 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const googleLogin = async (credential) => {
+    setError(null)
+    try {
+      const { data } = await authApi.googleLogin(credential)
+      const token = parseToken(data)
+      const loggedInUser = parseUser(data)
+
+      if (!token) throw new Error('No token in response')
+      if (!loggedInUser) throw new Error('No user data in response')
+
+      localStorage.setItem('caremate_token', token)
+      localStorage.setItem('caremate_user', JSON.stringify(loggedInUser))
+      setUser(loggedInUser)
+      return loggedInUser
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Google login failed'
+      setError(msg)
+      throw err
+    }
+  }
+
   const register = async (userData) => {
     setError(null)
     try {
@@ -118,7 +139,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, register, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, error, login, googleLogin, register, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   )

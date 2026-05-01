@@ -17,16 +17,7 @@ const caregiverLogSchema = new mongoose.Schema({
     required: true
   },
   tasks: [mongoose.Schema.Types.Mixed],
-  treatmentChecklist: [{
-    task: String,
-    type: String,
-    sourceId: String,
-    sourceLabel: String,
-    scheduledTime: Date,
-    completed: Boolean,
-    time: String,
-    notes: String
-  }],
+  treatmentChecklist: [mongoose.Schema.Types.Mixed],
   medications: [{
     medication: {
       type: mongoose.Schema.Types.ObjectId,

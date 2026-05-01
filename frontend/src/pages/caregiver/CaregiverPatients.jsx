@@ -18,6 +18,7 @@ import {
   UserRound,
   ClipboardList,
   AlertTriangle,
+  Folder,
 } from 'lucide-react'
 import {
   formatAppointmentDate,
@@ -58,27 +59,38 @@ const getTemperatureText = (vitals) => (
     : 'Not recorded'
 )
 
-const DetailSection = ({ icon: Icon, title, subtitle, children, count }) => (
+const DetailSection = ({ icon: Icon, title, subtitle, children, count, isOpen, onToggle }) => (
   <div
-    className="rounded-2xl p-4"
+    className="rounded-2xl overflow-hidden"
     style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}
   >
-    <div className="flex items-start justify-between gap-3 mb-4">
-      <div className="flex items-start gap-3">
+    <button
+      type="button"
+      className="w-full flex items-start justify-between gap-3 p-4 text-left"
+      onClick={onToggle}
+    >
+      <div className="flex items-start gap-3 min-w-0">
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
           style={{ background: '#f5f3ff', color: '#7c3aed' }}
         >
-          <Icon size={18} />
+          {isOpen ? <Icon size={18} /> : <Folder size={18} />}
         </div>
-        <div>
+        <div className="min-w-0">
           <h3 className="section-title" style={{ marginBottom: 4 }}>{title}</h3>
           {subtitle && <p className="text-xs" style={{ color: '#64748b' }}>{subtitle}</p>}
         </div>
       </div>
-      {typeof count === 'number' && <Badge variant="purple">{count}</Badge>}
-    </div>
-    {children}
+      <div className="flex items-center gap-2 flex-wrap justify-end">
+        {typeof count === 'number' && <Badge variant="purple">{count}</Badge>}
+        {isOpen ? <ChevronUp size={18} style={{ color: '#64748b' }} /> : <ChevronDown size={18} style={{ color: '#64748b' }} />}
+      </div>
+    </button>
+    {isOpen && (
+      <div className="px-4 pb-4">
+        {children}
+      </div>
+    )}
   </div>
 )
 
@@ -88,6 +100,7 @@ export default function CaregiverPatients() {
   const [openPatientIds, setOpenPatientIds] = useState({})
   const [patientDetails, setPatientDetails] = useState({})
   const [loadingDetails, setLoadingDetails] = useState({})
+  const [openDetailFolderIds, setOpenDetailFolderIds] = useState({})
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -143,6 +156,16 @@ export default function CaregiverPatients() {
       setLoadingDetails((prev) => ({ ...prev, [patientId]: false }))
     }
   }
+
+  const toggleDetailFolder = (patientId, folderId) => {
+    const key = `${patientId}-${folderId}`
+    setOpenDetailFolderIds((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }))
+  }
+
+  const isDetailFolderOpen = (patientId, folderId) => !!openDetailFolderIds[`${patientId}-${folderId}`]
 
   return (
     <DashboardLayout>
@@ -245,6 +268,8 @@ export default function CaregiverPatients() {
                             icon={Stethoscope}
                             title="Doctor & Profile"
                             subtitle="Essential patient and doctor information"
+                            isOpen={isDetailFolderOpen(patient._id, 'profile')}
+                            onToggle={() => toggleDetailFolder(patient._id, 'profile')}
                           >
                             <div className="flex flex-col gap-3">
                               <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
@@ -276,6 +301,9 @@ export default function CaregiverPatients() {
                             icon={HeartPulse}
                             title="Latest Vitals"
                             subtitle={details.latestVitals?.recordedAt ? `Last recorded ${formatRelative(details.latestVitals.recordedAt)}` : 'Most recent health readings'}
+                            count={details.latestVitals ? 1 : 0}
+                            isOpen={isDetailFolderOpen(patient._id, 'vitals')}
+                            onToggle={() => toggleDetailFolder(patient._id, 'vitals')}
                           >
                             {!details.latestVitals ? (
                               <p className="text-sm" style={{ color: '#64748b' }}>No vitals recorded yet.</p>
@@ -317,6 +345,8 @@ export default function CaregiverPatients() {
                             title="Medication Details"
                             subtitle="Active and recent medications with schedule"
                             count={details.recentMedications?.length || 0}
+                            isOpen={isDetailFolderOpen(patient._id, 'medications')}
+                            onToggle={() => toggleDetailFolder(patient._id, 'medications')}
                           >
                             {!details.recentMedications?.length ? (
                               <p className="text-sm" style={{ color: '#64748b' }}>No medications found for this patient.</p>
@@ -361,6 +391,8 @@ export default function CaregiverPatients() {
                             title="Appointment Details"
                             subtitle="Recent and upcoming appointments"
                             count={details.recentAppointments?.length || 0}
+                            isOpen={isDetailFolderOpen(patient._id, 'appointments')}
+                            onToggle={() => toggleDetailFolder(patient._id, 'appointments')}
                           >
                             {!details.recentAppointments?.length ? (
                               <p className="text-sm" style={{ color: '#64748b' }}>No appointment history found.</p>
@@ -408,6 +440,8 @@ export default function CaregiverPatients() {
                             title="Consultation Details"
                             subtitle="Diagnosis, treatment, and follow-up summary"
                             count={details.recentConsultations?.length || 0}
+                            isOpen={isDetailFolderOpen(patient._id, 'consultations')}
+                            onToggle={() => toggleDetailFolder(patient._id, 'consultations')}
                           >
                             {!details.recentConsultations?.length ? (
                               <p className="text-sm" style={{ color: '#64748b' }}>No consultation summaries available.</p>
@@ -454,6 +488,8 @@ export default function CaregiverPatients() {
                             title="Pending Reminders"
                             subtitle="Upcoming medication reminders"
                             count={details.pendingReminders?.length || 0}
+                            isOpen={isDetailFolderOpen(patient._id, 'reminders')}
+                            onToggle={() => toggleDetailFolder(patient._id, 'reminders')}
                           >
                             {!details.pendingReminders?.length ? (
                               <p className="text-sm" style={{ color: '#64748b' }}>No pending reminders right now.</p>
@@ -483,6 +519,8 @@ export default function CaregiverPatients() {
                             title="Care Logs"
                             subtitle="Recent caregiver observations and completed care"
                             count={details.recentLogs?.length || 0}
+                            isOpen={isDetailFolderOpen(patient._id, 'care-logs')}
+                            onToggle={() => toggleDetailFolder(patient._id, 'care-logs')}
                           >
                             {!details.recentLogs?.length ? (
                               <p className="text-sm" style={{ color: '#64748b' }}>No caregiver logs recorded yet.</p>

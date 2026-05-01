@@ -8,14 +8,12 @@ import { formatDateTime, formatRelative } from '../../utils/formatDate'
 import toast from 'react-hot-toast'
 import {
   Calendar,
-  CheckSquare,
   ChevronDown,
   ChevronRight,
   ClipboardList,
-  Clock,
   Folder,
   Pill,
-  Save,
+  CheckCircle,
   Search,
   Stethoscope,
 } from 'lucide-react'
@@ -69,6 +67,8 @@ const addDays = (value, days) => {
   date.setDate(date.getDate() + days)
   return date
 }
+
+const asArray = (value) => (Array.isArray(value) ? value : [])
 
 const getDateKey = (value) => {
   const date = startOfDay(value)
@@ -134,7 +134,7 @@ function getTaskSourceId(task) {
 }
 
 const getTasksForCareLogDate = (appointmentFolder, date) => (
-  appointmentFolder.tasks.filter((task) => {
+  asArray(appointmentFolder.tasks).filter((task) => {
     if (task.type === 'daily_log') return false
 
     const dueDate = task.dueTime || task.createdAt || appointmentFolder.appointmentDate
@@ -150,7 +150,7 @@ const getTasksForCareLogDate = (appointmentFolder, date) => (
 )
 
 const mergeChecklistWithDateTasks = (log, appointmentFolder, date) => {
-  const existingChecklist = log.treatmentChecklist || []
+  const existingChecklist = asArray(log.treatmentChecklist)
   const existingKeys = new Set(existingChecklist.map((item) => String(item.sourceId || item.task || '').toLowerCase()))
   const dateTasks = getTasksForCareLogDate(appointmentFolder, date)
     .filter((item) => !existingKeys.has(String(item.sourceId || item.task || '').toLowerCase()))
@@ -162,14 +162,34 @@ const mergeChecklistWithDateTasks = (log, appointmentFolder, date) => {
 }
 
 const buildDailyCareLogSlots = (appointmentFolder, patientFolder) => {
-  const startDate = startOfDay(appointmentFolder.appointmentDate)
-  const endDate = startOfDay(appointmentFolder.followUpDate || appointmentFolder.appointmentDate)
+  const fallbackDate =
+    appointmentFolder.appointmentDate ||
+    asArray(appointmentFolder.tasks)[0]?.dueTime ||
+    asArray(appointmentFolder.tasks)[0]?.createdAt ||
+    asArray(appointmentFolder.logs)[0]?.date ||
+    asArray(appointmentFolder.logs)[0]?.createdAt ||
+    new Date()
+  const startDate = startOfDay(fallbackDate)
+  const endDate = startOfDay(appointmentFolder.followUpDate || fallbackDate)
   const savedLogsByDate = new Map(
-    appointmentFolder.logs.map((log) => [getCareLogDateKey(log), log])
+    asArray(appointmentFolder.logs).map((log) => [getCareLogDateKey(log), log])
   )
 
   if (!startDate || !endDate || endDate < startDate) {
-    return appointmentFolder.logs
+    return asArray(appointmentFolder.logs).length > 0
+      ? asArray(appointmentFolder.logs)
+      : [{
+          _id: `missing-log-${appointmentFolder.appointmentKey}-${getDateKey(fallbackDate)}`,
+          date: toDate(fallbackDate)?.toISOString() || new Date().toISOString(),
+          isPlaceholder: true,
+          patient: { _id: patientFolder.patientId, user: { name: patientFolder.patientName } },
+          patientId: patientFolder.patientId,
+          careWindow: {
+            appointmentDate: fallbackDate,
+            followUpDate: appointmentFolder.followUpDate,
+          },
+          treatmentChecklist: [],
+        }]
   }
 
   const days = []
@@ -183,7 +203,7 @@ const buildDailyCareLogSlots = (appointmentFolder, patientFolder) => {
       patient: { _id: patientFolder.patientId, user: { name: patientFolder.patientName } },
       patientId: patientFolder.patientId,
       careWindow: {
-        appointmentDate: appointmentFolder.appointmentDate,
+        appointmentDate: fallbackDate,
         followUpDate: appointmentFolder.followUpDate,
       },
       treatmentChecklist: getTasksForCareLogDate(appointmentFolder, date),
@@ -208,7 +228,6 @@ export default function CaregiverWorkboard() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingLogIds, setSavingLogIds] = useState({})
-  const [checklistDrafts, setChecklistDrafts] = useState({})
   const [openPatientIds, setOpenPatientIds] = useState({})
   const [openAppointmentIds, setOpenAppointmentIds] = useState({})
   const [openDailyLogIds, setOpenDailyLogIds] = useState({})
@@ -330,22 +349,35 @@ export default function CaregiverWorkboard() {
       .filter((patientFolder) => patientFolder.appointmentFolders.length > 0)
   }, [patientFolders, searchTerm])
 
-  const getChecklist = (log) => checklistDrafts[log._id] || log.treatmentChecklist || []
-
   const getSavedChecklist = (saved, fallback = []) => (
-    saved.treatmentChecklist || saved.tasks || fallback
+    asArray(saved?.treatmentChecklist).length > 0
+      ? saved.treatmentChecklist
+      : asArray(saved?.tasks).length > 0
+        ? saved.tasks
+        : fallback
   )
 
-  const updateChecklistItem = (logId, nextChecklist) => {
-    setLogs((prev) => prev.map((log) => {
-      if (log._id !== logId) return log
-      return { ...log, treatmentChecklist: nextChecklist }
-    }))
+  const getChecklist = (log) => asArray(log.treatmentChecklist)
+
+  const upsertSavedLog = (currentLogs, originalLog, nextLog) => {
+    if (originalLog.isPlaceholder) return [...currentLogs, nextLog]
+
+    const index = currentLogs.findIndex((item) => item._id === originalLog._id)
+    if (index === -1) return [...currentLogs, nextLog]
+
+    return currentLogs.map((item, itemIndex) => (
+      itemIndex === index ? nextLog : item
+    ))
   }
 
-  const saveChecklist = async (log, options = {}) => {
-    const draftId = options.draftId || log._id
-    const previousChecklist = options.previousChecklist || getChecklist(log)
+  const markCareLogDone = async (log) => {
+    const draftId = log._id
+    const completedAt = new Date().toISOString()
+    const completedChecklist = getChecklist(log).map((item) => ({
+      ...item,
+      completed: true,
+      time: item.time || completedAt,
+    }))
 
     setSavingLogIds((prev) => ({ ...prev, [draftId]: true }))
     try {
@@ -353,47 +385,35 @@ export default function CaregiverWorkboard() {
         ? await caregiverApi.addLog(log.patientId || getPatientId(log), {
             date: log.date,
             observations: '',
-            treatmentChecklist: log.treatmentChecklist || [],
+            treatmentChecklist: completedChecklist,
+            checkOutTime: completedAt,
           })
         : await caregiverApi.updateLog(log._id, {
-            treatmentChecklist: log.treatmentChecklist || [],
+            treatmentChecklist: completedChecklist,
+            checkOutTime: completedAt,
           })
-      const saved = response.data?.data || response.data
+      const saved = response.data?.data || response.data || {}
       const nextLog = {
         ...log,
         ...saved,
         isPlaceholder: false,
         patient: log.patient,
         careWindow: log.careWindow,
-        treatmentChecklist: getSavedChecklist(saved, log.treatmentChecklist || []),
+        treatmentChecklist: getSavedChecklist(saved, asArray(log.treatmentChecklist)),
       }
-      setLogs((prev) => (
-        log.isPlaceholder
-          ? [...prev, nextLog]
-          : prev.map((item) => (item._id === log._id ? nextLog : item))
-      ))
-      setChecklistDrafts((prev) => {
-        const next = { ...prev }
-        delete next[draftId]
+      setLogs((prev) => upsertSavedLog(prev, log, nextLog))
+      setOpenDailyLogIds((prev) => {
+        if (!log.isPlaceholder || !saved?._id) return prev
+        const next = { ...prev, [saved._id]: true }
+        delete next[log._id]
         return next
       })
-      toast.success('Care log updated')
+      toast.success('Care log marked as done')
     } catch (error) {
-      setChecklistDrafts((prev) => ({ ...prev, [draftId]: log.treatmentChecklist || previousChecklist }))
-      toast.error(error?.response?.data?.message || 'Failed to update care log')
+      toast.error(error?.response?.data?.message || 'Failed to mark care log done')
     } finally {
       setSavingLogIds((prev) => ({ ...prev, [draftId]: false }))
     }
-  }
-
-  const handleChecklistChange = (log, index, patch) => {
-    const previousChecklist = getChecklist(log)
-    const nextChecklist = previousChecklist.map((item, itemIndex) => (
-      itemIndex === index ? { ...item, ...patch } : item
-    ))
-
-    setChecklistDrafts((prev) => ({ ...prev, [log._id]: nextChecklist }))
-    if (!log.isPlaceholder) updateChecklistItem(log._id, nextChecklist)
   }
 
   const renderTask = (task, patientName) => {
@@ -431,10 +451,11 @@ export default function CaregiverWorkboard() {
 
   const renderCareLog = (log) => {
     const checklist = getChecklist(log)
-    const completedCount = checklist.filter((item) => item.completed).length
     const isFuture = log.isPlaceholder && startOfDay(log.date) > startOfDay(new Date())
     const dateLabel = getDisplayDate(log.date || log.createdAt)
     const isLogOpen = !!openDailyLogIds[log._id]
+    const isDone = !!log.checkOutTime
+    const completedCount = checklist.filter((item) => item.completed).length
 
     return (
       <div
@@ -469,11 +490,11 @@ export default function CaregiverWorkboard() {
           <div className="flex items-center gap-2 flex-wrap">
             {checklist.length > 0 && (
               <Badge variant={completedCount === checklist.length ? 'success' : 'warning'}>
-                {completedCount}/{checklist.length} done
+                {completedCount}/{checklist.length} tasks
               </Badge>
             )}
-            <Badge variant={log.isPlaceholder ? (isFuture ? 'info' : 'warning') : log.checkOutTime ? 'success' : 'warning'}>
-              {log.isPlaceholder ? (isFuture ? 'Upcoming' : 'Not recorded') : log.checkOutTime ? 'Completed' : 'Open'}
+            <Badge variant={isDone ? 'success' : log.isPlaceholder ? (isFuture ? 'info' : 'warning') : 'warning'}>
+              {isDone ? 'Done' : log.isPlaceholder ? (isFuture ? 'Upcoming' : 'Not recorded') : 'Open'}
             </Badge>
             {isLogOpen ? <ChevronDown size={18} style={{ color: '#64748b' }} /> : <ChevronRight size={18} style={{ color: '#64748b' }} />}
           </div>
@@ -483,76 +504,82 @@ export default function CaregiverWorkboard() {
           <div className="px-4 pb-4">
             {log.observations && <p className="text-sm mb-3" style={{ color: '#475569' }}>{log.observations}</p>}
 
-            <div className="rounded-xl p-4" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
+            <div className="rounded-xl p-4 mb-3" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
               <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                <div className="flex items-center gap-2">
-                  <CheckSquare size={16} style={{ color: '#7c3aed' }} />
-                  <p className="text-sm font-semibold" style={{ color: '#0f172a', margin: 0 }}>Treatment Checklist</p>
-                </div>
-                <Button
-                  size="sm"
-                  icon={Save}
-                  loading={!!savingLogIds[log._id]}
-                  onClick={() => saveChecklist({ ...log, treatmentChecklist: checklist })}
-                >
-                  Save Update
-                </Button>
+                <p className="text-sm font-semibold" style={{ color: '#0f172a', margin: 0 }}>
+                  Care tasks for this day
+                </p>
+                <Badge variant={checklist.length > 0 ? 'purple' : 'default'}>{checklist.length} tasks</Badge>
               </div>
 
               {checklist.length === 0 ? (
-                <p className="text-sm" style={{ color: '#64748b' }}>No treatment items available yet from the latest consultation.</p>
+                <p className="text-sm" style={{ color: '#64748b', margin: 0 }}>
+                  No doctor treatment items or medication tasks are linked to this date yet.
+                </p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {checklist.map((item, index) => (
-                    <div key={`${log._id}-${index}-${item.task}`} className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div key={`${log._id}-${index}-${item.sourceId || item.task}`} className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                       <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <label className="flex items-start gap-3 min-w-0 flex-1" style={{ cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={!!item.completed}
-                            onClick={(event) => event.stopPropagation()}
-                            onChange={(event) => handleChecklistChange(log, index, {
-                              completed: event.target.checked,
-                              time: event.target.checked && !item.time ? new Date().toISOString() : item.time,
-                            })}
-                            style={{ marginTop: 2, width: 16, height: 16, cursor: 'pointer', accentColor: '#7c3aed' }}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              {item.type && (
-                                <Badge variant={item.type === 'medication' ? 'info' : item.type === 'follow_up' ? 'purple' : 'warning'}>
-                                  {logTypeLabels[item.type] || item.type}
-                                </Badge>
-                              )}
-                              {item.scheduledTime && <span className="text-xs" style={{ color: '#64748b' }}>Scheduled: {formatDateTime(item.scheduledTime)}</span>}
-                            </div>
-                            <p
-                              className="text-sm"
-                              style={{
-                                color: '#0f172a',
-                                textDecoration: item.completed ? 'line-through' : 'none',
-                                opacity: item.completed ? 0.75 : 1,
-                                margin: 0,
-                              }}
-                            >
-                              {item.task}
-                            </p>
-                            {item.notes && <p className="text-xs mt-1" style={{ color: '#64748b' }}>{item.notes}</p>}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            {item.type && (
+                              <Badge variant={item.type === 'medication' ? 'info' : item.type === 'follow_up' ? 'purple' : 'warning'}>
+                                {logTypeLabels[item.type] || item.type}
+                              </Badge>
+                            )}
+                            {item.scheduledTime && (
+                              <span className="text-xs" style={{ color: '#64748b' }}>
+                                Scheduled: {formatDateTime(item.scheduledTime)}
+                              </span>
+                            )}
                           </div>
-                        </label>
-
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant={item.completed ? 'success' : 'warning'}>{item.completed ? 'Completed' : 'Pending'}</Badge>
-                          <span className="text-xs flex items-center gap-1" style={{ color: '#64748b' }}>
-                            <Clock size={12} />
-                            {item.time ? formatDateTime(item.time) : 'Not updated'}
-                          </span>
+                          <p className="text-sm" style={{ color: '#0f172a', margin: 0 }}>
+                            {item.task || 'Care task'}
+                          </p>
+                          {item.notes && <p className="text-xs mt-1" style={{ color: '#64748b' }}>{item.notes}</p>}
                         </div>
+                        <Badge variant={item.completed ? 'success' : 'warning'}>
+                          {item.completed ? 'Completed' : 'Pending'}
+                        </Badge>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="rounded-xl p-4" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: isDone ? '#dcfce7' : '#ede9fe', color: isDone ? '#16a34a' : '#7c3aed' }}>
+                    <CheckCircle size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: '#0f172a', margin: 0 }}>
+                      {isDone ? 'Care log completed' : 'Ready to complete this care log'}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: '#64748b', margin: 0 }}>
+                      {isDone
+                        ? `Done on ${formatDateTime(log.checkOutTime)}`
+                        : 'Click the button when this care log is done.'}
+                    </p>
+                  </div>
+                </div>
+                {!isDone && !isFuture && (
+                  <Button
+                    size="sm"
+                    icon={CheckCircle}
+                    loading={!!savingLogIds[log._id]}
+                    onClick={() => markCareLogDone(log)}
+                  >
+                    Mark Done
+                  </Button>
+                )}
+                {isFuture && (
+                  <Badge variant="info">Upcoming</Badge>
+                )}
+              </div>
             </div>
           </div>
         )}

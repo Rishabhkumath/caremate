@@ -25,8 +25,8 @@ export default function MedicationCard({ medication, onEdit, onDelete }) {
             <Pill size={18} className={active ? 'text-teal-400' : 'text-slate-500'} />
           </div>
           <div>
-            <h4 className="text-white font-medium text-sm">{name}</h4>
-            <p className="text-slate-400 text-xs">{dosage}</p>
+            <h4 className="text-slate-900 font-medium text-sm">{name}</h4>
+            <p className="text-slate-600 text-xs">{dosage}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -34,22 +34,22 @@ export default function MedicationCard({ medication, onEdit, onDelete }) {
         </div>
       </div>
       <div className="mt-3 flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <div className="flex items-center gap-1.5 text-xs text-slate-600">
           <Clock size={12} />
           <span>{freqLabels[frequency] || frequency}</span>
         </div>
         {times.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap">
             {times.map((time) => (
-              <span key={time} className="px-2 py-0.5 bg-white/5 rounded-full text-xs text-slate-400">{time}</span>
+              <span key={time} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{time}</span>
             ))}
           </div>
         )}
       </div>
       {(onEdit || onDelete) && (
-        <div className="mt-3 flex items-center gap-2 pt-3 border-t border-white/5">
+        <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
           {onEdit && (
-            <button onClick={() => onEdit(medication)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+            <button onClick={() => onEdit(medication)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors">
               <Edit size={12} /> Edit
             </button>
           )}

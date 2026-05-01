@@ -138,9 +138,9 @@ export default function PatientProfile() {
         <Card className="text-center p-6 sm:p-8 flex flex-col items-center gap-4">
           <Avatar name={user?.name} role="patient" size="xl" />
           <div>
-            <h3 className="text-white font-display text-xl font-semibold">{profileUser?.name || user?.name}</h3>
-            <p className="text-slate-400 text-sm">{profileUser?.email || user?.email}</p>
-            <p className="text-teal-400 text-xs mt-1 capitalize">{profileUser?.role || user?.role}</p>
+            <h3 className="text-slate-900 font-display text-xl font-semibold">{profileUser?.name || user?.name}</h3>
+            <p className="text-slate-600 text-sm">{profileUser?.email || user?.email}</p>
+            <p className="text-teal-700 text-xs mt-1 capitalize">{profileUser?.role || user?.role}</p>
           </div>
           <Button variant="secondary" size="sm">Change Photo</Button>
         </Card>

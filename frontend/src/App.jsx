@@ -110,6 +110,7 @@ export default function App() {
         <Route path="dashboard" element={<CaregiverDashboard />} />
         <Route path="patients"  element={<CaregiverPatients />} />
         <Route path="workboard" element={<CaregiverWorkboard />} />
+        <Route path="carework"  element={<Navigate to="/caregiver/workboard" replace />} />
         <Route path="logs"      element={<Navigate to="/caregiver/workboard" replace />} />
         <Route path="tasks"     element={<Navigate to="/caregiver/workboard" replace />} />
         <Route path="profile"   element={<CaregiverProfile />} />

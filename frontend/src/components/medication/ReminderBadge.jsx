@@ -26,12 +26,12 @@ export default function ReminderBadge({ reminder, onTaken }) {
   }
 
   return (
-    <div className={`flex items-center justify-between p-3 rounded-xl border transition-all ${taken ? 'bg-teal-500/5 border-teal-500/20 opacity-60' : 'bg-white/5 border-white/10 hover:border-teal-500/20'}`}>
+    <div className={`flex items-center justify-between rounded-xl border p-3 transition-all ${taken ? 'bg-teal-50 border-teal-200 opacity-70' : 'bg-white border-slate-200 hover:border-teal-200'}`}>
       <div className="flex items-center gap-3">
         <Bell size={15} className={taken ? 'text-teal-400' : 'text-yellow-400'} />
         <div>
-          <p className="text-white text-sm font-medium">{medicationName}</p>
-          <p className="text-slate-400 text-xs">{time} - {dosage}</p>
+          <p className="text-slate-900 text-sm font-medium">{medicationName}</p>
+          <p className="text-slate-600 text-xs">{time} - {dosage}</p>
         </div>
       </div>
       {!taken && (

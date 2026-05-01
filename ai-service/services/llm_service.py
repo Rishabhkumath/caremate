@@ -73,12 +73,77 @@ class LLMService:
                 "role": "user",
                 "content": (
                     f"{message}\n\n"
-                    "Reply in plain English. Use 2 to 4 short sentences. "
-                    "Do not use JSON, key-value pairs, headings, or labels."
+                    "Give a complete, practical healthcare answer in plain English. "
+                    "Use 3 to 5 short sentences. Include what the user can do now, "
+                    "when to contact a doctor, and when to seek urgent help if relevant. "
+                    "Do not use JSON, key-value pairs, headings, roleplay, jokes, or labels."
                 ),
             }
         )
         return messages
+
+    def _rule_based_response(self, message: str) -> Optional[str]:
+        normalized = message.lower()
+
+        emergency_terms = (
+            "chest pain",
+            "difficulty breathing",
+            "shortness of breath",
+            "severe bleeding",
+            "stroke",
+            "fainting",
+            "unconscious",
+            "suicide",
+        )
+        if any(term in normalized for term in emergency_terms):
+            return (
+                "These symptoms can be urgent and should not be handled by chat. "
+                "Please call emergency services or go to the nearest emergency room now, especially if symptoms are sudden, severe, or worsening. "
+                "If possible, have someone stay with the patient while help is arranged."
+            )
+
+        bp_terms = ("bp", "blood pressure", "hypertension", "systolic", "diastolic")
+        if any(term in normalized for term in bp_terms):
+            return (
+                "For adults, a usual normal blood pressure is below 120/80 mm Hg; 130/80 or higher is considered high when it happens repeatedly. "
+                "If a reading is high, sit quietly for 5 minutes and recheck it, then record both numbers with the time and any symptoms. "
+                "A reading around 180/120 mm Hg or higher, or high BP with chest pain, breathing trouble, weakness, vision changes, or severe headache needs urgent medical help. "
+                "For repeated high readings, book a doctor visit to review lifestyle, medicines, and proper home monitoring."
+            )
+
+        medication_terms = ("medicine", "medication", "tablet", "dose", "dosage", "insulin", "injection")
+        if any(term in normalized for term in medication_terms):
+            return (
+                "Take medicines exactly as prescribed and do not change the dose or stop them without asking the doctor. "
+                "If a dose is missed, follow the instructions on the prescription or contact the clinic or pharmacist instead of doubling doses unless told to. "
+                "Seek urgent help for severe allergy symptoms such as swelling of the face, trouble breathing, fainting, or a widespread rash."
+            )
+
+        if "headache" in normalized:
+            return (
+                "For a mild headache, rest in a quiet place, drink water, eat something light if you have not eaten, and avoid bright screens for a while. "
+                "You may use an over-the-counter pain reliever only if it is safe for you and you are not allergic or restricted from taking it. "
+                "Contact a doctor if headaches happen often, last more than a day or two, or are unusual for you. "
+                "Seek urgent care for a sudden severe headache, headache with vomiting, weakness, confusion, fever, stiff neck, vision changes, or after a head injury."
+            )
+
+        if "fever" in normalized:
+            return (
+                "For fever, rest, drink fluids, and monitor the temperature regularly. "
+                "Light clothing and a comfortable room temperature can help, and fever medicine should only be used as directed for the patient. "
+                "Contact a doctor if fever lasts more than 3 days, is very high, or occurs in an infant, elderly person, pregnancy, or someone with serious illness. "
+                "Seek urgent help for breathing trouble, confusion, severe weakness, stiff neck, seizure, dehydration, or a rash that does not fade."
+            )
+
+        if "cough" in normalized:
+            return (
+                "For a mild cough, drink warm fluids, rest, avoid smoke or dust, and consider honey if the patient is over 1 year old. "
+                "Watch for fever, wheezing, chest pain, or symptoms lasting more than a week. "
+                "Contact a doctor if the cough is worsening, produces blood, or the patient has asthma, heart disease, or low oxygen readings. "
+                "Seek urgent help for breathing difficulty, blue lips, severe chest pain, or confusion."
+            )
+
+        return None
 
     def _looks_structured(self, text: str) -> bool:
         stripped = text.strip()
@@ -147,6 +212,7 @@ class LLMService:
             text = assistant_match.group(1).strip()
 
         text = re.sub(r"^(User|Patient|Assistant)\s*:\s*", "", text, flags=re.IGNORECASE)
+        text = re.split(r"\b(User|Patient|Assistant)\s*:", text, maxsplit=1, flags=re.IGNORECASE)[0].strip()
         text = re.sub(r"^\([^)]*\)\s*", "", text)
         text = re.sub(r"\b\d+\.\s*$", "", text).strip()
         text = re.sub(r"(Here are some simple steps to take:|In simple terms:)\s*$", "", text, flags=re.IGNORECASE).strip()
@@ -167,6 +233,40 @@ class LLMService:
             return text.strip()
         return " ".join(parts[:max_sentences]).strip()
 
+    def _is_low_quality_response(self, text: str) -> bool:
+        normalized = text.lower()
+        if len(text.split()) < 18:
+            return True
+
+        bad_markers = (
+            "wine",
+            "tasting",
+            "user:",
+            "patient:",
+            "assistant:",
+            "i am not a healthcare",
+            "as an ai language model",
+            "i cannot provide",
+            "lorem ipsum",
+            "json",
+        )
+        if any(marker in normalized for marker in bad_markers):
+            return True
+
+        if re.search(r"\b(kill|suicide|bomb)\b", normalized):
+            return True
+
+        return False
+
+    def _extract_ollama_content(self, data: Dict[str, Any]) -> str:
+        message = data.get("message") or {}
+        return (
+            message.get("content")
+            or data.get("response")
+            or data.get("content")
+            or ""
+        ).strip()
+
     async def _post_chat(self, messages: list[Dict[str, str]], temperature: Optional[float] = None) -> str:
         payload = {
             "model": self.model,
@@ -175,7 +275,7 @@ class LLMService:
             "options": {
                 "temperature": self.temperature if temperature is None else temperature,
                 "num_predict": self.max_tokens,
-                "stop": ["User:", "Patient:", "Assistant:"],
+                "stop": ["User:", "Patient:"],
             },
         }
 
@@ -184,8 +284,17 @@ class LLMService:
             response.raise_for_status()
             data = response.json()
 
-        content = data.get("message", {}).get("content", "").strip()
+            content = self._extract_ollama_content(data)
+            if not content:
+                retry_payload = {**payload, "options": {**payload["options"]}}
+                retry_payload["options"].pop("stop", None)
+                response = await client.post(f"{self.base_url}/api/chat", json=retry_payload)
+                response.raise_for_status()
+                data = response.json()
+                content = self._extract_ollama_content(data)
+
         if not content:
+            logger.warning("Ollama returned no content. Raw response keys: %s", list(data.keys()))
             raise ValueError("Ollama returned an empty response")
         return content
 
@@ -199,9 +308,17 @@ class LLMService:
                 logger.error("Ollama request skipped because the service is not configured")
                 return ChatTemplates.get_configuration_response()
 
+            deterministic_response = self._rule_based_response(message)
+            if deterministic_response:
+                logger.info("Using rule-based response for common healthcare intent")
+                return deterministic_response
+
             messages = self._build_messages(message, context)
             ai_response = self._clean_response_text(await self._post_chat(messages))
-            ai_response = self._limit_sentences(ai_response, max_sentences=4)
+            ai_response = self._limit_sentences(ai_response, max_sentences=5)
+            if self._is_low_quality_response(ai_response):
+                logger.warning("Ollama output failed quality checks")
+                return ChatTemplates.get_fallback_response()
             logger.info("Generated Ollama response of length: %s", len(ai_response))
             return ai_response
         except httpx.ConnectError as exc:

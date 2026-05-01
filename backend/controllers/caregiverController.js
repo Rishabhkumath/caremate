@@ -160,8 +160,8 @@ const normalizeChecklistItems = (items = []) => (
 );
 
 const getSubmittedChecklist = (body = {}) => {
-  if (Array.isArray(body.treatmentChecklist)) return body.treatmentChecklist;
   if (Array.isArray(body.tasks)) return body.tasks;
+  if (Array.isArray(body.treatmentChecklist)) return body.treatmentChecklist;
   return null;
 };
 
@@ -437,11 +437,16 @@ const createCaregiverLog = async (req, res, next) => {
     if (log) {
       if (Array.isArray(submittedTasks)) {
         log.treatmentChecklist = normalizeChecklistItems(submittedTasks);
-        if (typeof req.body.observations === 'string') {
-          log.observations = req.body.observations;
-        }
-        await log.save();
       }
+      if (typeof req.body.observations === 'string') {
+        log.observations = req.body.observations;
+      }
+      if (req.body.checkOutTime) {
+        log.checkOutTime = new Date(req.body.checkOutTime);
+        const checkIn = log.checkInTime ? new Date(log.checkInTime) : new Date();
+        log.totalHours = Math.max((log.checkOutTime - checkIn) / (1000 * 60 * 60), 0);
+      }
+      await log.save();
 
       return successResponse(res, withTreatmentChecklist(log), 'Caregiver log updated successfully');
     }
@@ -451,6 +456,9 @@ const createCaregiverLog = async (req, res, next) => {
       status: 'completed',
     }).sort({ updatedAt: -1, date: -1, createdAt: -1 });
 
+    const checkInTime = new Date();
+    const checkOutTime = req.body.checkOutTime ? new Date(req.body.checkOutTime) : null;
+
     log = await CaregiverLog.create({
       date: requestedDate,
       observations: req.body.observations || '',
@@ -459,7 +467,11 @@ const createCaregiverLog = async (req, res, next) => {
         : buildTreatmentChecklist(latestConsultation, []),
       caregiver: caregiver._id,
       patient: patientId,
-      checkInTime: new Date()
+      checkInTime,
+      ...(checkOutTime ? {
+        checkOutTime,
+        totalHours: Math.max((checkOutTime - checkInTime) / (1000 * 60 * 60), 0),
+      } : {})
     });
 
     return successResponse(res, withTreatmentChecklist(log), 'Caregiver log created successfully', 201);

@@ -20,7 +20,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
       >
         <div className="flex items-center justify-between border-b border-slate-200/70 px-5 py-4 sm:px-6">
           <h2 className="section-title mb-0">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 transition-colors p-1 rounded-lg hover:bg-slate-100">
             <X size={20} />
           </button>
         </div>

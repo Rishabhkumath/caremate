@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -6,15 +6,109 @@ import Input from '../../components/common/Input'
 import Button from '../../components/common/Button'
 import toast from 'react-hot-toast'
 import { getRoleDashboardPath } from '../../utils/roleHelpers'
+import { authApi } from '../../api/authApi'
+
+const normalizeGoogleClientId = (clientId) => {
+  const normalized = (clientId || '').trim()
+  return normalized && !normalized.startsWith('your-google-oauth-client-id') ? normalized : ''
+}
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const googleButtonRef = useRef(null)
+  const { login, googleLogin } = useAuth()
   const navigate = useNavigate()
+  const envGoogleClientId = normalizeGoogleClientId(import.meta.env.VITE_GOOGLE_CLIENT_ID)
+  const [googleClientId, setGoogleClientId] = useState(envGoogleClientId)
+  const [googleConfigLoading, setGoogleConfigLoading] = useState(!envGoogleClientId)
 
   const handleChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }))
+
+  useEffect(() => {
+    if (envGoogleClientId) {
+      setGoogleConfigLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setGoogleConfigLoading(true)
+
+    authApi.getGoogleConfig()
+      .then(({ data }) => {
+        if (cancelled) return
+        setGoogleClientId(normalizeGoogleClientId(data?.data?.clientId))
+      })
+      .catch(() => {
+        if (!cancelled) setGoogleClientId('')
+      })
+      .finally(() => {
+        if (!cancelled) setGoogleConfigLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [envGoogleClientId])
+
+  const handleGoogleCredential = useCallback(async (response) => {
+    if (!response?.credential) {
+      toast.error('Google sign-in did not return a credential')
+      return
+    }
+
+    setGoogleLoading(true)
+    try {
+      const user = await googleLogin(response.credential)
+      toast.success(`Welcome back, ${user.name}!`)
+      navigate(getRoleDashboardPath(user.role))
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Google login failed')
+    } finally {
+      setGoogleLoading(false)
+    }
+  }, [googleLogin, navigate])
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return
+
+    const renderGoogleButton = () => {
+      if (!window.google?.accounts?.id || !googleButtonRef.current) return
+
+      googleButtonRef.current.innerHTML = ''
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredential,
+      })
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        width: googleButtonRef.current.offsetWidth || 384,
+        text: 'signin_with',
+        shape: 'rectangular',
+      })
+    }
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton()
+      return
+    }
+
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]')
+    if (existingScript) {
+      existingScript.addEventListener('load', renderGoogleButton)
+      return () => existingScript.removeEventListener('load', renderGoogleButton)
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.addEventListener('load', renderGoogleButton)
+    document.head.appendChild(script)
+
+    return () => script.removeEventListener('load', renderGoogleButton)
+  }, [googleClientId, handleGoogleCredential])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -118,6 +212,43 @@ export default function Login() {
 
             <Button type="submit" fullWidth loading={loading} size="lg">Sign In</Button>
           </form>
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1" style={{ backgroundColor: '#dbe4ef' }} />
+            <span className="text-xs font-medium uppercase tracking-[0.12em]" style={{ color: '#94a3b8' }}>or</span>
+            <div className="h-px flex-1" style={{ backgroundColor: '#dbe4ef' }} />
+          </div>
+
+          <div className="min-h-[44px]">
+            {googleConfigLoading ? (
+              <button
+                type="button"
+                disabled
+                className="w-full h-11 rounded-lg border bg-white text-sm font-medium"
+                style={{ borderColor: '#dbe4ef', color: '#94a3b8' }}
+              >
+                Checking Google login...
+              </button>
+            ) : googleClientId ? (
+              <>
+                <div ref={googleButtonRef} className="w-full flex justify-center" />
+                {googleLoading && (
+                  <p className="mt-2 text-center text-xs" style={{ color: '#64748b' }}>
+                    Signing in with Google...
+                  </p>
+                )}
+              </>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="w-full h-11 rounded-lg border bg-white text-sm font-medium"
+                style={{ borderColor: '#dbe4ef', color: '#94a3b8' }}
+              >
+                Google login not configured
+              </button>
+            )}
+          </div>
 
           <p className="mt-6 text-center text-sm" style={{ color: '#64748b' }}>
             Don't have an account?{' '}

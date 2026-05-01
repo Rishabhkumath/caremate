@@ -20,7 +20,7 @@ export default function NotificationItem({ notification }) {
 
   return (
     <div
-      className={`flex items-start gap-3 p-3 rounded-xl transition-colors hover:bg-white/5 cursor-pointer ${isUnread ? 'bg-teal-500/5' : ''}`}
+      className={`flex items-start gap-3 p-3 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer ${isUnread ? 'bg-teal-50' : ''}`}
       onClick={() => isUnread && markRead(notification._id)}
     >
       <div className={`w-9 h-9 rounded-xl ${typeInfo.bg} flex items-center justify-center flex-shrink-0`}>
@@ -28,17 +28,17 @@ export default function NotificationItem({ notification }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-sm font-medium ${isUnread ? 'text-white' : 'text-slate-400'} leading-tight`}>
+          <p className={`text-sm font-medium ${isUnread ? 'text-slate-900' : 'text-slate-700'} leading-tight`}>
             {notification.title}
           </p>
           {isUnread && <span className="w-2 h-2 rounded-full bg-teal-400 flex-shrink-0 mt-1" />}
         </div>
-        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notification.message}</p>
-        <p className="text-xs text-slate-600 mt-1">{formatRelative(notification.createdAt)}</p>
+        <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">{notification.message}</p>
+        <p className="text-xs text-slate-500 mt-1">{formatRelative(notification.createdAt)}</p>
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); removeNotification(notification._id) }}
-        className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded flex-shrink-0"
+        className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded flex-shrink-0"
       >
         <Trash2 size={13} />
       </button>

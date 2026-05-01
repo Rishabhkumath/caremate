@@ -4,6 +4,8 @@ const { body } = require('express-validator');
 const { 
   register, 
   login, 
+  googleLogin,
+  getGoogleConfig,
   forgotPassword,
   resetPassword,
   logout,
@@ -47,6 +49,8 @@ const loginValidation = [
 
 router.post('/register', registerValidation, register);
 router.post('/login', authLimiter, loginValidation, login);
+router.post('/google', authLimiter, googleLogin);
+router.get('/google/config', getGoogleConfig);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
 router.get('/me', protect, getMe);

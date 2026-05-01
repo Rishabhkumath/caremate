@@ -6,8 +6,8 @@ export default function AppointmentList({ appointments = [], loading, onCancel, 
   if (loading) return <div className="py-8 flex justify-center"><LoadingSpinner /></div>
   if (!appointments.length) return (
     <div className="text-center py-10">
-      <Calendar size={32} className="text-slate-600 mx-auto mb-2" />
-      <p className="text-slate-400 text-sm">No appointments found</p>
+      <Calendar size={32} className="text-slate-400 mx-auto mb-2" />
+      <p className="text-slate-500 text-sm">No appointments found</p>
     </div>
   )
   return (

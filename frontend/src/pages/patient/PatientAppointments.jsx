@@ -107,7 +107,7 @@ export default function PatientAppointments() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="page-title mb-1">Appointments</h1>
-          <p className="text-slate-400 text-sm">{appointments.filter(a => a.status === 'confirmed').length} upcoming confirmed</p>
+          <p className="text-sm" style={{ color: '#64748b' }}>{appointments.filter(a => a.status === 'confirmed').length} upcoming confirmed</p>
         </div>
         <Button onClick={() => setAddModal(true)} icon={Plus}>Book Appointment</Button>
       </div>
@@ -117,7 +117,7 @@ export default function PatientAppointments() {
           <div className="flex gap-2 mb-4 flex-wrap">
             {['all', 'confirmed', 'pending', 'completed', 'cancelled'].map(s => (
               <button key={s} onClick={() => setFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${filter === s ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${filter === s ? 'border border-teal-200 bg-teal-50 text-teal-700' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
                 {s}
               </button>
             ))}
@@ -131,18 +131,18 @@ export default function PatientAppointments() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="section-title">Consultation Summaries</h3>
-            <p className="text-slate-400 text-sm mt-1">
+            <p className="text-sm mt-1" style={{ color: '#64748b' }}>
               Completed doctor notes, treatment plans, and follow-up suggestions
             </p>
           </div>
-          <FileText size={18} className="text-slate-400" />
+          <FileText size={18} className="text-slate-500" />
         </div>
 
         {loadingConsultations ? (
           <p className="text-sm text-center py-6" style={{ color: '#94a3b8' }}>Loading consultation summaries...</p>
         ) : consultations.length === 0 ? (
           <div className="text-center py-8">
-            <FileText size={34} className="mx-auto mb-3 text-slate-500" />
+            <FileText size={34} className="mx-auto mb-3 text-slate-400" />
             <p className="text-sm" style={{ color: '#64748b' }}>No consultation summaries yet</p>
           </div>
         ) : (
