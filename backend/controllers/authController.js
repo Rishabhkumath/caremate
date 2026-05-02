@@ -8,6 +8,7 @@ const { successResponse, errorResponse } = require('../utils/apiResponse')
 const crypto       = require('crypto')
 const emailService = require('../services/emailService')
 const axios        = require('axios')
+const { verifyRecaptcha } = require('../utils/recaptcha')
 
 const getAuthUserPayload = (user) => ({
   id:             user._id,
@@ -38,6 +39,11 @@ const getGoogleClientId = () => {
 // ── register ──────────────────────────────────────────────
 const register = async (req, res, next) => {
   try {
+    const recaptcha = await verifyRecaptcha(req.body.recaptchaToken, req.ip)
+    if (!recaptcha.success) {
+      return errorResponse(res, recaptcha.message, 400)
+    }
+
     const errors = validationResult(req)
     if (!errors.isEmpty()) return errorResponse(res, errors.array()[0].msg, 400)
 
@@ -112,6 +118,11 @@ const register = async (req, res, next) => {
 // ── login ─────────────────────────────────────────────────
 const login = async (req, res, next) => {
   try {
+    const recaptcha = await verifyRecaptcha(req.body.recaptchaToken, req.ip)
+    if (!recaptcha.success) {
+      return errorResponse(res, recaptcha.message, 400)
+    }
+
     const errors = validationResult(req)
     if (!errors.isEmpty()) return errorResponse(res, errors.array()[0].msg, 400)
 
@@ -147,7 +158,7 @@ const googleLogin = async (req, res, next) => {
     const googleClientId = getGoogleClientId()
 
     if (!googleClientId) {
-      return errorResponse(res, 'Google login is not configured on this server', 500)
+      return errorResponse(res, 'Google login is not configured. Set GOOGLE_CLIENT_ID in backend/.env and restart the backend server.', 503)
     }
 
     if (!credential) {
@@ -211,6 +222,9 @@ const googleLogin = async (req, res, next) => {
   } catch (error) {
     if (error.response?.status) {
       return errorResponse(res, 'Invalid Google credential', 401)
+    }
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNABORTED' || error.code === 'ECONNRESET') {
+      return errorResponse(res, 'Unable to verify Google credential right now. Check the backend internet connection and try again.', 503)
     }
     next(error)
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { User, Mail, Lock, Eye, EyeOff, Phone, Stethoscope, BadgeCheck, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -7,6 +7,7 @@ import Select from '../../components/common/Select'
 import Button from '../../components/common/Button'
 import toast from 'react-hot-toast'
 import { getRoleDashboardPath } from '../../utils/roleHelpers'
+import Recaptcha from '../../components/common/Recaptcha'
 
 const ROLES = [
   { value: 'patient',   label: 'Patient – I need health monitoring' },
@@ -41,14 +42,21 @@ export default function Register() {
   const [form,         setForm]         = useState(INITIAL)
   const [showPassword, setShowPassword] = useState(false)
   const [loading,      setLoading]      = useState(false)
+  const [recaptchaToken, setRecaptchaToken] = useState('')
+  const [recaptchaResetSignal, setRecaptchaResetSignal] = useState(0)
   const { register } = useAuth()
   const navigate     = useNavigate()
+  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
 
   const isDoctor = form.role === 'doctor'
   const isAdmin = form.role === 'admin'
 
   const handleChange = (e) =>
     setForm(p => ({ ...p, [e.target.name]: e.target.value }))
+
+  const handleRecaptchaChange = useCallback((token) => {
+    setRecaptchaToken(token)
+  }, [])
 
   const validate = () => {
     if (!form.name.trim())                      return 'Name is required'
@@ -67,6 +75,9 @@ export default function Register() {
     e.preventDefault()
     const err = validate()
     if (err) return toast.error(err)
+    if (recaptchaSiteKey && !recaptchaToken) {
+      return toast.error('Please complete the reCAPTCHA challenge')
+    }
 
     setLoading(true)
     try {
@@ -74,6 +85,7 @@ export default function Register() {
         name:        form.name,
         email:       form.email,
         password:    form.password,
+        recaptchaToken,
         role:        form.role,
         gender:      form.gender,
         dateOfBirth: form.dateOfBirth,
@@ -91,6 +103,7 @@ export default function Register() {
       toast.success('Account created successfully 🎉')
       navigate(getRoleDashboardPath(user.role))
     } catch (err) {
+      setRecaptchaResetSignal((value) => value + 1)
       toast.error(err?.response?.data?.message || err?.message || 'Registration failed')
     } finally {
       setLoading(false)
@@ -220,7 +233,19 @@ export default function Register() {
                    value={form.confirmPassword} onChange={handleChange}
                    placeholder="Repeat your password" required />
 
-            <Button type="submit" fullWidth loading={loading} size="lg" className="mt-1">
+            <Recaptcha
+              siteKey={recaptchaSiteKey}
+              onChange={handleRecaptchaChange}
+              resetSignal={recaptchaResetSignal}
+            />
+
+            <Button
+              type="submit"
+              fullWidth
+              loading={loading}
+              size="lg"
+              className="mt-1"
+            >
               {loading ? 'Creating Account…' : 'Create Account'}
             </Button>
 

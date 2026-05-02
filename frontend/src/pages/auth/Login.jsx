@@ -7,6 +7,7 @@ import Button from '../../components/common/Button'
 import toast from 'react-hot-toast'
 import { getRoleDashboardPath } from '../../utils/roleHelpers'
 import { authApi } from '../../api/authApi'
+import Recaptcha from '../../components/common/Recaptcha'
 
 const normalizeGoogleClientId = (clientId) => {
   const normalized = (clientId || '').trim()
@@ -18,10 +19,13 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [recaptchaToken, setRecaptchaToken] = useState('')
+  const [recaptchaResetSignal, setRecaptchaResetSignal] = useState(0)
   const googleButtonRef = useRef(null)
   const { login, googleLogin } = useAuth()
   const navigate = useNavigate()
   const envGoogleClientId = normalizeGoogleClientId(import.meta.env.VITE_GOOGLE_CLIENT_ID)
+  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
   const [googleClientId, setGoogleClientId] = useState(envGoogleClientId)
   const [googleConfigLoading, setGoogleConfigLoading] = useState(!envGoogleClientId)
 
@@ -112,12 +116,18 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (recaptchaSiteKey && !recaptchaToken) {
+      toast.error('Please complete the reCAPTCHA challenge')
+      return
+    }
+
     setLoading(true)
     try {
-      const user = await login(form)
+      const user = await login({ ...form, recaptchaToken })
       toast.success(`Welcome back, ${user.name}!`)
       navigate(getRoleDashboardPath(user.role))
     } catch (err) {
+      setRecaptchaResetSignal((value) => value + 1)
       toast.error(err.response?.data?.message || 'Invalid credentials')
     } finally {
       setLoading(false)
@@ -210,7 +220,20 @@ export default function Login() {
               </Link>
             </div>
 
-            <Button type="submit" fullWidth loading={loading} size="lg">Sign In</Button>
+            <Recaptcha
+              siteKey={recaptchaSiteKey}
+              onChange={setRecaptchaToken}
+              resetSignal={recaptchaResetSignal}
+            />
+
+            <Button
+              type="submit"
+              fullWidth
+              loading={loading}
+              size="lg"
+            >
+              Sign In
+            </Button>
           </form>
 
           <div className="my-6 flex items-center gap-3">

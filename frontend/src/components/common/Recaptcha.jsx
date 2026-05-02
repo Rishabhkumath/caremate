@@ -1,0 +1,120 @@
+import { useEffect, useRef, useState } from 'react'
+
+const SCRIPT_SRC = 'https://www.google.com/recaptcha/api.js?render=explicit'
+
+const loadRecaptchaScript = () => {
+  const existingScript = document.querySelector(`script[src="${SCRIPT_SRC}"]`)
+  if (existingScript) {
+    return new Promise((resolve, reject) => {
+      if (window.grecaptcha?.render) return resolve()
+      existingScript.addEventListener('load', resolve, { once: true })
+      existingScript.addEventListener('error', reject, { once: true })
+    })
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = SCRIPT_SRC
+    script.async = true
+    script.defer = true
+    script.addEventListener('load', resolve, { once: true })
+    script.addEventListener('error', reject, { once: true })
+    document.head.appendChild(script)
+  })
+}
+
+export default function Recaptcha({ siteKey, onChange, resetSignal = 0 }) {
+  const containerRef = useRef(null)
+  const widgetIdRef = useRef(null)
+  const [loading, setLoading] = useState(Boolean(siteKey))
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    let timeoutId
+
+    if (!siteKey || !containerRef.current) {
+      setLoading(false)
+      return undefined
+    }
+
+    setLoading(true)
+    setError('')
+
+    timeoutId = window.setTimeout(() => {
+      if (!cancelled && widgetIdRef.current === null) {
+        setError('reCAPTCHA is taking too long to load. Refresh the page and try again.')
+        setLoading(false)
+      }
+    }, 10000)
+
+    loadRecaptchaScript()
+      .then(() => {
+        if (cancelled || !containerRef.current || widgetIdRef.current !== null) return
+
+        window.grecaptcha.ready(() => {
+          if (cancelled || !containerRef.current || widgetIdRef.current !== null) return
+
+          try {
+            widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
+              sitekey: siteKey,
+              callback: (token) => onChange(token),
+              'expired-callback': () => onChange(''),
+              'error-callback': () => {
+                onChange('')
+                setError('reCAPTCHA reported an error. Please try the challenge again.')
+              },
+            })
+            setLoading(false)
+          } catch (err) {
+            setError(
+              'Could not show reCAPTCHA. Use a reCAPTCHA v2 Checkbox site key and allow this domain in Google reCAPTCHA.'
+            )
+            setLoading(false)
+          }
+        })
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('Could not load reCAPTCHA. Check your internet connection and refresh the page.')
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [siteKey, onChange])
+
+  useEffect(() => {
+    if (widgetIdRef.current === null || !window.grecaptcha?.reset) return
+    window.grecaptcha.reset(widgetIdRef.current)
+    onChange('')
+  }, [resetSignal, onChange])
+
+  if (!siteKey) {
+    return null
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border px-3 py-2" style={{ borderColor: '#fecaca', backgroundColor: '#fef2f2' }}>
+        <p className="text-xs leading-5" style={{ color: '#dc2626' }}>
+          {error}
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-[78px] overflow-x-auto">
+      {loading && (
+        <p className="text-xs leading-5" style={{ color: '#64748b' }}>
+          Loading reCAPTCHA...
+        </p>
+      )}
+      <div ref={containerRef} />
+    </div>
+  )
+}
