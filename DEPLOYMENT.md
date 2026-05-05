@@ -61,7 +61,7 @@ NODE_ENV=production
 MONGODB_URI=mongodb+srv://<username>:<password>@caremate-cluster.efr5jpj.mongodb.net/caremate?retryWrites=true&w=majority
 JWT_SECRET=<long-random-secret>
 JWT_EXPIRE=30d
-CLIENT_URL=https://your-vercel-app.vercel.app
+CLIENT_URL=https://caremate001.vercel.app
 ALLOW_VERCEL_PREVIEWS=true
 AI_SERVICE_URL=https://your-ngrok-url.ngrok-free.app/api
 AI_SERVICE_TIMEOUT=30000
@@ -73,7 +73,7 @@ SCHEDULER_ENABLED=true
 After deploy, test:
 
 ```text
-https://your-render-service.onrender.com/api/v1/health
+https://caremate-hx61.onrender.com/api/v1/health
 ```
 
 ## 4. Deploy Frontend On Vercel
@@ -90,7 +90,7 @@ Build settings:
 Set these Vercel environment variables:
 
 ```env
-VITE_API_BASE_URL=https://your-render-service.onrender.com/api/v1
+VITE_API_BASE_URL=https://caremate-hx61.onrender.com/api/v1
 VITE_APP_NAME=CareMate
 VITE_GOOGLE_CLIENT_ID=<optional-google-client-id>
 VITE_RECAPTCHA_SITE_KEY=<optional-recaptcha-site-key>
@@ -113,7 +113,7 @@ For a stricter setup, use Render's documented outbound IPs if available for your
 After Vercel gives you the final frontend URL, update Render:
 
 ```env
-CLIENT_URL=https://your-vercel-app.vercel.app
+CLIENT_URL=https://caremate001.vercel.app
 ```
 
 After ngrok gives you the tunnel URL, update Render:
