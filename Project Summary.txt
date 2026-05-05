@@ -1,0 +1,337 @@
+**Project Summary**  
+CareMate is a full-stack healthcare management platform for four roles: patients, doctors, caregivers, and admins. It has a React dashboard frontend, a Node/Express backend with MongoDB, and a separate Python FastAPI AI microservice for healthcare chat, symptom analysis, and routine recommendations.
+
+**Architecture**  
+The project is split into three main services:
+
+`frontend/`  
+React + Vite single-page app. It handles routing, dashboards, forms, charts, notifications, authentication state, and API calls.
+
+`backend/`  
+Express REST API. It owns authentication, role-based authorization, MongoDB models, business logic, reminders, notifications, emails, and proxying AI requests.
+
+`ai-service/`  
+FastAPI microservice. It provides healthcare chatbot responses through Ollama, rule-based symptom analysis, and routine generation using JSON templates.
+
+The high-level flow is:
+
+```text
+React UI
+  -> Axios API layer
+  -> Express /api/v1 routes
+  -> Controllers
+  -> Mongoose models / services
+  -> MongoDB
+
+For AI:
+React UI
+  -> Express /api/v1/ai/*
+  -> backend AI proxy service
+  -> FastAPI AI service
+  -> Ollama / rule-based services
+```
+
+**Frontend**  
+The frontend starts at `frontend/src/main.jsx`, where `BrowserRouter`, `AuthProvider`, `NotificationProvider`, `ThemeProvider`, and toast notifications are registered.
+
+`frontend/src/App.jsx` defines the role-based routes:
+
+- Public: landing, login, register, forgot/reset password
+- Patient: dashboard, vitals, medications, appointments, reports, profile
+- Doctor: dashboard, patients, consultations, schedule, prescriptions, profile
+- Caregiver: dashboard, patients, workboard, profile
+- Admin: dashboard, users, doctors, reports, settings, analytics
+
+`ProtectedRoute.jsx` checks whether the user is logged in and whether their role is allowed. Admins are treated as privileged users who can pass role checks.
+
+API calls are grouped by domain in `frontend/src/api/`, for example:
+
+- `authApi.js`
+- `vitalsApi.js`
+- `medicationApi.js`
+- `appointmentApi.js`
+- `notificationApi.js`
+- `chatbotApi.js`
+
+`axiosInstance.js` centralizes the backend base URL and automatically attaches the JWT from `localStorage` as:
+
+```http
+Authorization: Bearer <token>
+```
+
+It also handles `401` responses by clearing auth data and redirecting to login.
+
+**Backend**  
+The backend starts in `backend/server.js`. It configures:
+
+- Express app
+- MongoDB connection
+- CORS
+- Helmet security headers
+- JSON parsing
+- Cookie parsing
+- Morgan/dev logging
+- Custom logger
+- Rate limiting
+- Health check
+- API routes
+- Error handling
+- Reminder scheduler
+
+All backend routes are mounted under:
+
+```text
+/api/v1
+```
+
+The main route registry is `backend/routes/index.js`, which connects:
+
+- `/auth`
+- `/patients`
+- `/doctors`
+- `/caregivers`
+- `/admin`
+- `/vitals`
+- `/medications`
+- `/appointments`
+- `/consultations`
+- `/notifications`
+- `/ai`
+
+Controllers contain the business logic. Models define MongoDB schemas using Mongoose.
+
+Important backend files:
+
+- `server.js`: app startup, middleware, route mounting, scheduler initialization
+- `config/db.js`: MongoDB connection
+- `config/jwt.js`: JWT generation and verification helpers
+- `middleware/authMiddleware.js`: validates JWT and attaches `req.user`
+- `middleware/roleMiddleware.js`: role-based authorization
+- `middleware/rateLimiter.js`: general, auth, and AI rate limits
+- `middleware/errorHandler.js`: centralized error response formatting
+- `utils/apiResponse.js`: consistent success/error JSON shape
+- `services/reminderScheduler.js`: cron jobs for medication and appointment reminders
+- `services/notificationService.js`: creates in-app and email notifications
+- `services/aiService.js`: backend client for the Python AI service
+
+**Authentication Flow**  
+Registration:
+
+1. User submits registration form.
+2. Backend validates fields and optional reCAPTCHA.
+3. Backend checks duplicate email.
+4. Backend creates a `User`.
+5. Depending on role, it also creates a `Patient`, `Doctor`, or `Caregiver` profile.
+6. Password is hashed by the Mongoose `pre('save')` hook in `User.js`.
+7. JWT is generated and returned.
+8. Frontend stores token and user in `localStorage`.
+
+Login:
+
+1. User submits email/password.
+2. Backend validates reCAPTCHA and credentials.
+3. `User.matchPassword()` compares password with bcrypt hash.
+4. Backend generates JWT.
+5. Frontend stores token and user.
+6. Future requests include `Authorization: Bearer <token>`.
+
+Protected request:
+
+1. Frontend sends JWT.
+2. `protect` middleware verifies it with `JWT_SECRET`.
+3. Backend fetches the user and attaches it to `req.user`.
+4. Role middleware checks access where needed.
+
+There is also Google login support. The backend verifies the Google credential using Google token info, links or creates a user, then returns the same JWT-based app session.
+
+**Data Models**  
+Core MongoDB models:
+
+- `User`: shared auth identity, role, email, password hash, Google auth fields
+- `Patient`: medical profile, emergency contact, assigned doctors/caregivers
+- `Doctor`: specialization, license, schedule, patients, verification
+- `Caregiver`: qualifications, services, assigned patients, verification
+- `Vitals`: BP, heart rate, temperature, oxygen, sugar, BMI, alerts
+- `Medication`: dosage, frequency, timing, prescription details
+- `MedicationReminder`: scheduled medication events and status
+- `Appointment`: patient-doctor appointment lifecycle
+- `Consultation`: symptoms, diagnosis, treatment, prescriptions
+- `Notification`: in-app notifications by user, type, priority, read status
+- `CaregiverLog`: daily care tasks, vitals, meals, activities, observations
+
+One nice detail: `Vitals.js` computes BMI and detects abnormal vitals before saving, adding alerts like high BP, fever, low oxygen, etc.
+
+**API Behavior**  
+The backend follows a controller/service/model pattern:
+
+```text
+Route -> Middleware -> Controller -> Model/Service -> Response
+```
+
+Example vitals flow:
+
+```text
+Patient submits vitals
+  -> POST /api/v1/vitals
+  -> protect middleware
+  -> vitalsController.createVitals
+  -> Vitals model pre-save computes BMI/alerts
+  -> notification service may alert relevant users
+  -> response returned to frontend
+```
+
+Example medication reminder flow:
+
+```text
+Medication created with timing
+  -> reminder scheduler checks due times using node-cron
+  -> creates MedicationReminder
+  -> notification service creates medication reminder notification
+  -> frontend NotificationContext polls and rings reminder sound
+```
+
+Example appointment flow:
+
+```text
+Patient books appointment
+  -> Appointment stored with doctor, patient, date, slot, status
+  -> Doctor can update status / consultation
+  -> Scheduler sends appointment reminders
+```
+
+**AI Service**  
+The AI part is intentionally separated as a microservice.
+
+Backend side:
+
+- `routes/aiRoutes.js` exposes authenticated AI endpoints.
+- `controllers/aiProxyController.js` validates requests, enriches context with user ID/role, and forwards to the AI service.
+- `services/aiService.js` uses Axios to call FastAPI.
+
+Python side:
+
+- `ai-service/main.py`: FastAPI app and router registration
+- `routers/chatbot.py`: health assistant chat endpoint
+- `routers/symptoms.py`: symptom analysis endpoints
+- `routers/routines.py`: routine recommendation endpoints
+- `services/llm_service.py`: talks to local Ollama and has rule-based fallback answers
+- `services/symptom_analyzer.py`: matches symptoms to conditions from JSON data
+- `services/routine_advisor.py`: builds diet, exercise, sleep, medication, and wellness routines
+- `models/*.py`: Pydantic request/response validation schemas
+
+AI flow:
+
+```text
+ChatbotWidget
+  -> chatbotApi.sendMessage()
+  -> POST /api/v1/ai/chat
+  -> Express auth + validation
+  -> backend aiService.sendChatMessage()
+  -> FastAPI /api/chat
+  -> LLMService
+  -> Ollama or fallback response
+  -> response returned to frontend
+```
+
+One implementation detail to be ready for in an interview: the intended architecture is clear, but some backend AI endpoint names should be aligned with FastAPI routes. For example, backend calls `/analyze-symptoms`, while FastAPI exposes `/api/analyze/symptoms`.
+
+**Key Features**  
+- Role-based dashboards
+- JWT authentication
+- Optional Google login
+- Patient vitals tracking
+- Automatic abnormal vitals detection
+- Medication management
+- Medication reminder scheduling
+- Appointment booking and schedule management
+- Doctor consultations and prescriptions
+- Caregiver workboard and care logs
+- In-app notifications and email support
+- Admin user/doctor/caregiver management
+- AI chatbot
+- Symptom analysis
+- Routine recommendations
+- Charts with Recharts
+- Toasts, themes, protected routes, reusable UI components
+
+**Tech Stack And Why**  
+Frontend:
+
+- React: component-based UI
+- Vite: fast dev server and build tool
+- React Router: SPA routing and role-based page structure
+- Axios: API client with interceptors
+- Tailwind CSS: utility-first styling
+- Recharts: vitals and dashboard charts
+- Lucide React: consistent icons
+- React Hot Toast: user feedback
+- React Google reCAPTCHA: bot protection on auth forms
+
+Backend:
+
+- Node.js + Express: REST API server
+- MongoDB + Mongoose: document database and schemas
+- JWT: stateless authentication
+- bcrypt: password hashing
+- express-validator: request validation
+- express-rate-limit: brute-force/API protection
+- Helmet: security headers
+- CORS: frontend/backend communication
+- Nodemailer: email notifications and password reset
+- node-cron: scheduled medication/appointment reminder jobs
+- Axios: backend-to-AI-service HTTP calls
+
+AI service:
+
+- FastAPI: fast Python API framework with docs
+- Pydantic: request/response validation
+- HTTPX: async calls to Ollama
+- Tenacity: retry logic
+- Ollama: local LLM provider
+- JSON data files: rule/template-based symptom and routine logic
+
+**Interview Questions With Short Answers**  
+1. What is CareMate?  
+A healthcare platform for patients, doctors, caregivers, and admins, with dashboards, vitals, medications, appointments, notifications, and AI health assistance.
+
+2. What architecture does it use?  
+A three-service architecture: React frontend, Express/MongoDB backend, and FastAPI AI microservice.
+
+3. Why separate the AI service?  
+It keeps Python AI logic independent from the Node backend, making it easier to scale, replace models, and maintain AI-specific dependencies.
+
+4. How does authentication work?  
+Users log in or register, the backend verifies credentials, generates a JWT, and the frontend sends it in the `Authorization` header for protected requests.
+
+5. How are roles handled?  
+Each user has a role: patient, doctor, caregiver, or admin. Frontend routes and backend middleware both enforce role access.
+
+6. What happens when a patient records vitals?  
+Vitals are saved in MongoDB, BMI and abnormal alerts are computed automatically, and urgent alerts can trigger notifications.
+
+7. How do medication reminders work?  
+Medications store timing data. A cron scheduler checks due reminders, creates reminder records, and sends notifications/emails.
+
+8. How does the chatbot work?  
+The frontend calls the backend AI route, the backend proxies the request to FastAPI, and FastAPI returns an Ollama-generated or fallback healthcare response.
+
+9. What database is used?  
+MongoDB, accessed through Mongoose schemas for users, patients, doctors, medications, vitals, appointments, consultations, and notifications.
+
+10. Why use Axios interceptors?  
+To attach JWT tokens automatically and handle unauthorized responses in one central place.
+
+11. What is `ProtectedRoute` used for?  
+It blocks unauthenticated users and redirects users who do not have the required role.
+
+12. How are errors handled?  
+Backend controllers pass errors to a centralized error handler, which formats validation, duplicate, JWT, and server errors consistently.
+
+13. What security features are included?  
+JWT auth, bcrypt password hashing, reCAPTCHA, rate limiting, Helmet headers, CORS configuration, and role-based authorization.
+
+14. What would you improve?  
+Add automated tests, align AI proxy route names with FastAPI routes, fix missing imports in some service files, improve real-time notifications with WebSockets, and add stronger audit logging.
+
+15. How would you explain the project in one minute?  
+CareMate is a role-based healthcare management system built with React, Express, MongoDB, and FastAPI. Patients can manage vitals, medications, appointments, and AI health queries. Doctors manage patients, consultations, prescriptions, and schedules. Caregivers track assigned patients and daily care logs. Admins manage users and verification. The backend secures everything with JWT and role middleware, while a Python AI microservice handles chat, symptom analysis, and routine recommendations.

@@ -85,7 +85,7 @@ class AIService {
 
   async analyzeSymptoms(symptoms, patientInfo = {}) {
     try {
-      const response = await this.client.post('/analyze-symptoms', {
+      const response = await this.client.post('/analyze/symptoms', {
         symptoms,
         duration: patientInfo.duration || null,
         severity: patientInfo.severity || null,
@@ -195,7 +195,7 @@ class AIService {
 
   async getSymptomInfo(symptom) {
     try {
-      const response = await this.client.get(`/symptom/${encodeURIComponent(symptom)}`);
+      const response = await this.client.get(`/analyze/common/${encodeURIComponent(symptom)}`);
       return response.data;
     } catch (error) {
       console.error('[AI Service] Get symptom info error:', error.message);

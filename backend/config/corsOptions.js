@@ -1,20 +1,39 @@
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5000'
+];
+
+const configuredOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [...new Set([...configuredOrigins, ...defaultOrigins])];
+
+const isAllowedVercelPreview = (origin) => {
+  if (process.env.ALLOW_VERCEL_PREVIEWS !== 'true') {
+    return false;
+  }
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return protocol === 'https:' && hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+};
+
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      process.env.CLIENT_URL || 'http://localhost:5173',
-      'http://localhost:5173',   // React Vite
-      'http://127.0.0.1:5173',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5000'
-    ];
-
     // allow requests like Postman (no origin)
     if (!origin) {
       return callback(null, true);
     }
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) || isAllowedVercelPreview(origin)) {
       callback(null, true);
     } else {
       console.log("Blocked by CORS:", origin);
