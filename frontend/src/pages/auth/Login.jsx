@@ -7,7 +7,7 @@ import Button from '../../components/common/Button'
 import toast from 'react-hot-toast'
 import { getRoleDashboardPath } from '../../utils/roleHelpers'
 import { authApi } from '../../api/authApi'
-import Recaptcha from '../../components/common/Recaptcha'
+import Recaptcha, { getValidRecaptchaSiteKey } from '../../components/common/Recaptcha'
 
 const normalizeGoogleClientId = (clientId) => {
   const normalized = (clientId || '').trim()
@@ -25,7 +25,7 @@ export default function Login() {
   const { login, googleLogin } = useAuth()
   const navigate = useNavigate()
   const envGoogleClientId = normalizeGoogleClientId(import.meta.env.VITE_GOOGLE_CLIENT_ID)
-  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
+  const recaptchaSiteKey = getValidRecaptchaSiteKey(import.meta.env.VITE_RECAPTCHA_SITE_KEY)
   const [googleClientId, setGoogleClientId] = useState(envGoogleClientId)
   const [googleConfigLoading, setGoogleConfigLoading] = useState(!envGoogleClientId)
 

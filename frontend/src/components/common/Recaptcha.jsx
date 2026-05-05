@@ -2,8 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 
 const SCRIPT_SRC = 'https://www.google.com/recaptcha/api.js?render=explicit'
 
+const hasRecaptchaScript = (script) => {
+  try {
+    const url = new URL(script.src)
+    return url.hostname === 'www.google.com' && url.pathname === '/recaptcha/api.js'
+  } catch {
+    return false
+  }
+}
+
+export const getValidRecaptchaSiteKey = (siteKey) => {
+  const normalizedSiteKey = (siteKey || '').trim()
+  return normalizedSiteKey && !normalizedSiteKey.startsWith('your-recaptcha') ? normalizedSiteKey : ''
+}
+
 const loadRecaptchaScript = () => {
-  const existingScript = document.querySelector(`script[src="${SCRIPT_SRC}"]`)
+  const existingScript = Array.from(document.scripts).find(hasRecaptchaScript)
   if (existingScript) {
     return new Promise((resolve, reject) => {
       if (window.grecaptcha?.render) return resolve()
@@ -26,14 +40,16 @@ const loadRecaptchaScript = () => {
 export default function Recaptcha({ siteKey, onChange, resetSignal = 0 }) {
   const containerRef = useRef(null)
   const widgetIdRef = useRef(null)
-  const [loading, setLoading] = useState(Boolean(siteKey))
+  const normalizedSiteKey = getValidRecaptchaSiteKey(siteKey)
+  const isConfigured = Boolean(normalizedSiteKey)
+  const [loading, setLoading] = useState(Boolean(isConfigured))
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
     let timeoutId
 
-    if (!siteKey || !containerRef.current) {
+    if (!isConfigured || !containerRef.current) {
       setLoading(false)
       return undefined
     }
@@ -57,7 +73,7 @@ export default function Recaptcha({ siteKey, onChange, resetSignal = 0 }) {
 
           try {
             widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
-              sitekey: siteKey,
+              sitekey: normalizedSiteKey,
               callback: (token) => onChange(token),
               'expired-callback': () => onChange(''),
               'error-callback': () => {
@@ -85,7 +101,7 @@ export default function Recaptcha({ siteKey, onChange, resetSignal = 0 }) {
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [siteKey, onChange])
+  }, [isConfigured, normalizedSiteKey, onChange])
 
   useEffect(() => {
     if (widgetIdRef.current === null || !window.grecaptcha?.reset) return
@@ -93,8 +109,14 @@ export default function Recaptcha({ siteKey, onChange, resetSignal = 0 }) {
     onChange('')
   }, [resetSignal, onChange])
 
-  if (!siteKey) {
-    return null
+  if (!isConfigured) {
+    return (
+      <div className="rounded-lg border px-3 py-2" style={{ borderColor: '#dbe4ef', backgroundColor: '#f8fafc' }}>
+        <p className="text-xs leading-5" style={{ color: '#64748b' }}>
+          reCAPTCHA is not configured. Add VITE_RECAPTCHA_SITE_KEY to frontend/.env and restart the frontend server.
+        </p>
+      </div>
+    )
   }
 
   if (error) {

@@ -7,7 +7,7 @@ import Select from '../../components/common/Select'
 import Button from '../../components/common/Button'
 import toast from 'react-hot-toast'
 import { getRoleDashboardPath } from '../../utils/roleHelpers'
-import Recaptcha from '../../components/common/Recaptcha'
+import Recaptcha, { getValidRecaptchaSiteKey } from '../../components/common/Recaptcha'
 
 const ROLES = [
   { value: 'patient',   label: 'Patient – I need health monitoring' },
@@ -46,7 +46,7 @@ export default function Register() {
   const [recaptchaResetSignal, setRecaptchaResetSignal] = useState(0)
   const { register } = useAuth()
   const navigate     = useNavigate()
-  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
+  const recaptchaSiteKey = getValidRecaptchaSiteKey(import.meta.env.VITE_RECAPTCHA_SITE_KEY)
 
   const isDoctor = form.role === 'doctor'
   const isAdmin = form.role === 'admin'
