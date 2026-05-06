@@ -15,7 +15,7 @@ import { getVitalScalar, hasVitalScalar } from '../../utils/vitalValues'
 import { Plus, Heart, Droplet, Wind, Thermometer } from 'lucide-react'
 
 export default function PatientVitals() {
-  const { vitals, latest } = useVitals()
+  const { vitals, latest, logVital } = useVitals()
   const [logModal, setLogModal] = useState(false)
 
   const heartRate = getVitalScalar(latest?.heartRate)
@@ -62,7 +62,7 @@ export default function PatientVitals() {
       </Card>
 
       <Modal isOpen={logModal} onClose={() => setLogModal(false)} title="Log Vitals">
-        <VitalsForm onSuccess={() => setLogModal(false)} />
+        <VitalsForm logVital={logVital} onSuccess={() => setLogModal(false)} />
       </Modal>
     </DashboardLayout>
   )

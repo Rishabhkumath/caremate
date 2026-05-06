@@ -15,10 +15,11 @@ const INITIAL = {
   notes: '',
 }
 
-export default function VitalsForm({ onSuccess, patientId }) {
+export default function VitalsForm({ onSuccess, patientId, logVital: logVitalProp }) {
   const [form, setForm] = useState(INITIAL)
   const [saving, setSaving] = useState(false)
   const { logVital } = useVitals(patientId)
+  const submitVital = logVitalProp || logVital
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -59,7 +60,7 @@ export default function VitalsForm({ onSuccess, patientId }) {
 
     setSaving(true)
     try {
-      await logVital(form)
+      await submitVital(form)
       toast.success('Vitals logged successfully!')
       setForm(INITIAL)
       onSuccess?.()
