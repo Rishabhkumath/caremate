@@ -24,7 +24,7 @@ import { useEffect } from 'react'
 
 export default function PatientDashboard() {
   const { user } = useAuth()
-  const { vitals, latest } = useVitals()
+  const { vitals, latest, logVital } = useVitals()
   const { reminders }      = useMedications()
   const { appointments, rateAppointment }   = useAppointments()
   const [logModal, setLogModal] = useState(false)
@@ -313,7 +313,7 @@ export default function PatientDashboard() {
 
       {/* Modal */}
       <Modal isOpen={logModal} onClose={() => setLogModal(false)} title="Log Today's Vitals">
-        <VitalsForm onSuccess={() => setLogModal(false)} />
+        <VitalsForm logVital={logVital} onSuccess={() => setLogModal(false)} />
       </Modal>
 
       <Modal

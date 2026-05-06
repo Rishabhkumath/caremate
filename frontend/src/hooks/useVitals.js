@@ -36,7 +36,19 @@ export const useVitals = (patientId) => {
 
   useEffect(() => { fetchVitals() }, [fetchVitals])
 
-  // Map flat frontend form fields → nested backend schema
+  const mergeCreatedVital = useCallback((createdVital) => {
+    if (!createdVital?._id) return
+
+    setVitals((prev) => {
+      const withoutDuplicate = prev.filter((vital) => vital._id !== createdVital._id)
+      return [createdVital, ...withoutDuplicate].sort(
+        (a, b) => new Date(b.recordedAt || b.createdAt || 0) - new Date(a.recordedAt || a.createdAt || 0)
+      )
+    })
+    setLatest(createdVital)
+  }, [])
+
+  // Map flat frontend form fields to nested backend schema
   const logVital = async (formData) => {
     const payload = {
       bloodPressure: {
@@ -59,7 +71,11 @@ export const useVitals = (patientId) => {
     }
 
     const { data } = await vitalsApi.log(payload)
-    await fetchVitals()
+    const createdVital = data?.data ?? data
+
+    mergeCreatedVital(createdVital)
+    fetchVitals().catch(() => {})
+
     return data
   }
 

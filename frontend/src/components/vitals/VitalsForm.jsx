@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Activity } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-import { useVitals } from '../../hooks/useVitals'
 import Input from '../common/Input'
 import Button from '../common/Button'
 
@@ -15,11 +14,9 @@ const INITIAL = {
   notes: '',
 }
 
-export default function VitalsForm({ onSuccess, patientId, logVital: logVitalProp }) {
+export default function VitalsForm({ onSuccess, logVital }) {
   const [form, setForm] = useState(INITIAL)
   const [saving, setSaving] = useState(false)
-  const { logVital } = useVitals(patientId)
-  const submitVital = logVitalProp || logVital
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -60,7 +57,7 @@ export default function VitalsForm({ onSuccess, patientId, logVital: logVitalPro
 
     setSaving(true)
     try {
-      await submitVital(form)
+      await logVital(form)
       toast.success('Vitals logged successfully!')
       setForm(INITIAL)
       onSuccess?.()
