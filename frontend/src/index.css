@@ -53,6 +53,16 @@
     overflow-x: hidden;
   }
 
+  /* Anchor offset for fixed navbar */
+  section[id], div[id] {
+    scroll-margin-top: 100px;
+  }
+
+  /* Smooth scroll for anchor links */
+  a[href^="#"] {
+    scroll-behavior: smooth;
+  }
+
   body {
     font-family: var(--font-body);
     background-color: var(--color-bg);

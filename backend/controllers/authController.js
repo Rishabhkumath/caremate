@@ -130,11 +130,25 @@ const login = async (req, res, next) => {
     const { password } = req.body
 
     const user = await User.findOne({ email }).select('+passwordHash')
-    if (!user || !await user.matchPassword(password))
+    if (!user) {
+      console.warn(`Login failed for ${email}: user not found`)
       return errorResponse(res, 'Invalid email or password', 401)
+    }
 
-    if (!user.isActive)
+    if (user.authProvider === 'google') {
+      console.warn(`Login failed for ${email}: google auth provider`)
+      return errorResponse(res, 'This account uses Google sign-in. Please log in with Google.', 401)
+    }
+
+    if (!await user.matchPassword(password)) {
+      console.warn(`Login failed for ${email}: wrong password`)
+      return errorResponse(res, 'Invalid email or password', 401)
+    }
+
+    if (!user.isActive) {
+      console.warn(`Login failed for ${email}: account inactive`)
       return errorResponse(res, 'Account deactivated. Contact support.', 401)
+    }
 
     user.lastLogin = Date.now()
     await user.save()

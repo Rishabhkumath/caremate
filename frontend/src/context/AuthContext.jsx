@@ -14,11 +14,23 @@ function getCachedUser() {
 // Handle all backend response shapes:
 // { success, data: { token, user } }  ← your backend's shape
 // { success, data: { id, name... } }  ← getMe shape
+function normalizeRole(role) {
+  const normalized = String(role || '').trim().toLowerCase()
+  return ['patient', 'doctor', 'caregiver', 'admin'].includes(normalized)
+    ? normalized
+    : 'patient'
+}
+
 function parseUser(data) {
   const u = data?.data?.user || data?.data || data?.user || null
   if (!u || typeof u !== 'object') return null
-  // Normalize: ensure both _id and id exist
-  return { ...u, _id: u._id || u.id, id: u.id || u._id }
+  // Normalize: ensure both _id and id exist, and keep role valid
+  return {
+    ...u,
+    _id: u._id || u.id,
+    id: u.id || u._id,
+    role: normalizeRole(u.role),
+  }
 }
 
 function parseToken(data) {

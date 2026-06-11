@@ -1,4 +1,5 @@
 ﻿import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
 import { Heart, Activity, Shield, Clock, Users, Brain, ArrowRight, CheckCircle } from 'lucide-react'
 
 const features = [
@@ -73,6 +74,39 @@ const footerGroups = [
 ]
 
 export default function LandingPage() {
+  // Handle anchor link scrolling
+  useEffect(() => {
+    const handleAnchorClick = (e) => {
+      if (e.target.tagName === 'A' && e.target.getAttribute('href')?.startsWith('#')) {
+        const href = e.target.getAttribute('href');
+        if (href && href !== '#' && !href.startsWith('#/')) {
+          e.preventDefault();
+          const targetId = href.substring(1);
+          const element = document.getElementById(targetId);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }
+    };
+
+    // Add click listener to document
+    document.addEventListener('click', handleAnchorClick);
+    
+    // Also handle hash change when page loads
+    const hash = window.location.hash.substring(1);
+    if (hash && !hash.startsWith('/')) {
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+
+    return () => document.removeEventListener('click', handleAnchorClick);
+  }, []);
+
   return (
     <div className="min-h-screen overflow-hidden" style={{ background: '#f4f7fb', color: '#0f172a' }}>
 

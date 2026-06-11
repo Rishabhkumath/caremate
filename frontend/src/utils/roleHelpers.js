@@ -7,7 +7,7 @@ export const getRoleDashboardPath = (role) => {
     [ROLES.CAREGIVER]: '/caregiver/dashboard',
     [ROLES.ADMIN]: '/admin/dashboard',
   }
-  return paths[role] || '/login'
+  return paths[role] || '/patient/dashboard'
 }
 
 export const getRoleLabel = (role) => {

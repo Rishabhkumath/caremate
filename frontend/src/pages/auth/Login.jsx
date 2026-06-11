@@ -93,6 +93,10 @@ export default function Login() {
       })
     }
 
+    const handleGoogleLoad = () => {
+      renderGoogleButton()
+    }
+
     if (window.google?.accounts?.id) {
       renderGoogleButton()
       return
@@ -100,18 +104,18 @@ export default function Login() {
 
     const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]')
     if (existingScript) {
-      existingScript.addEventListener('load', renderGoogleButton)
-      return () => existingScript.removeEventListener('load', renderGoogleButton)
+      existingScript.addEventListener('load', handleGoogleLoad, { once: true })
+      return () => existingScript.removeEventListener('load', handleGoogleLoad)
     }
 
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
     script.async = true
     script.defer = true
-    script.addEventListener('load', renderGoogleButton)
+    script.addEventListener('load', handleGoogleLoad, { once: true })
     document.head.appendChild(script)
 
-    return () => script.removeEventListener('load', renderGoogleButton)
+    return () => script.removeEventListener('load', handleGoogleLoad)
   }, [googleClientId, handleGoogleCredential])
 
   const handleSubmit = async (e) => {
