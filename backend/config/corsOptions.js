@@ -4,7 +4,11 @@ const defaultOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5000',
-  'https://caremate001.vercel.app'
+  'https://caremate001.vercel.app',
+
+   // Capacitor Android
+  'capacitor://localhost',
+  'http://localhost'
 ];
 
 const configuredOrigins = (process.env.CLIENT_URL || '')
