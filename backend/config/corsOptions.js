@@ -8,7 +8,8 @@ const defaultOrigins = [
 
    // Capacitor Android
   'capacitor://localhost',
-  'http://localhost'
+  'http://localhost',
+   'https://localhost'
 ];
 
 const configuredOrigins = (process.env.CLIENT_URL || '')

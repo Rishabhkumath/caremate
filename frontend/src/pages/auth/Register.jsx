@@ -103,9 +103,13 @@ export default function Register() {
       toast.success('Account created successfully 🎉')
       navigate(getRoleDashboardPath(user.role))
     } catch (err) {
-      setRecaptchaResetSignal((value) => value + 1)
-      toast.error(err?.response?.data?.message || err?.message || 'Registration failed')
-    } finally {
+  console.log("REGISTER ERROR:", err);
+  console.log("REGISTER RESPONSE:", err?.response?.data);
+  console.log("REGISTER STATUS:", err?.response?.status);
+
+  setRecaptchaResetSignal((value) => value + 1)
+  toast.error(err?.response?.data?.message || err?.message || 'Registration failed')
+}finally {
       setLoading(false)
     }
   }
